@@ -22,7 +22,13 @@
   },
   "dependencies": {
     "@gitsync/log": "^1.0.0",
+    "@types/lodash": "^4.14.138",
+    "@types/progress": "^2.0.3",
+    "@types/yargs": "^13.0.2",
     "chalk-theme": "^1.0.0",
-    "ts-git": "^1.0.0"
+    "lodash": "^4.17.15",
+    "progress": "^2.0.3",
+    "ts-git": "^1.0.0",
+    "yargs": "^13.0.0"
   }
 }
