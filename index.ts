@@ -1,7 +1,7 @@
 import {Arguments} from "yargs";
 import git, {Git} from 'ts-git';
 import log from '@gitsync/log';
-import style from 'chalk-theme';
+import theme from 'chalk-theme';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -134,7 +134,7 @@ To reset to previous HEAD:
     const sourceCount = _.size(sourceLogs);
     const targetCount = _.size(targetLogs);
     log.warn(
-      `Commits: ${style.info('new: %s, exists: %s, source: %s, target: %s')}`,
+      `Commits: ${theme.info('new: %s, exists: %s, source: %s, target: %s')}`,
       newCount,
       sourceCount - newCount,
       sourceCount,
@@ -143,7 +143,7 @@ To reset to previous HEAD:
 
     const newBranches = this.objectValueDiff(sourceBranches, targetBranches);
     log.warn(
-      `Branches: ${style.info('new: %s, exists: %s, source: %s, target: %s')}`,
+      `Branches: ${theme.info('new: %s, exists: %s, source: %s, target: %s')}`,
       _.size(newBranches),
       _.size(sourceBranches) - _.size(newBranches),
       _.size(sourceBranches),
@@ -161,7 +161,7 @@ To reset to previous HEAD:
     progressBar.terminate();
 
     log.warn(
-      style.info('Synced %s %s.'),
+      theme.info('Synced %s %s.'),
       newCount,
       this.pluralize('commit', newCount)
     );
@@ -183,7 +183,7 @@ To reset to previous HEAD:
     // TODO 1. normalize dir 2. generate "gitsync ..." command
     let branchTips = '';
     this.conflictBranches.forEach((branch: string) => {
-      branchTips += '    ' + style.info(branch) + ' conflict with ' + style.info(this.getConflictBranchName(branch)) + "\n";
+      branchTips += '    ' + theme.info(branch) + ' conflict with ' + theme.info(this.getConflictBranchName(branch)) + "\n";
     });
 
     const branchCount = _.size(this.conflictBranches);
@@ -259,7 +259,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     progressBar.terminate();
-    log.warn(style.info(`Synced ${_.size(sourceBranches) - skipped}, skipped ${skipped} branches.`));
+    log.warn(theme.info(`Synced ${_.size(sourceBranches) - skipped}, skipped ${skipped} branches.`));
   }
 
   protected async createOrUpdateTargetBranch(sourceBranch: string) {
@@ -548,7 +548,7 @@ Please follow the steps to resolve the conflicts:
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
-    log.warn(`Tags: ${style.info(`new: ${newCount}, exists: ${total - newCount}, source: ${total}, target: ${_.size(targetTags)}`)}`);
+    log.warn(`Tags: ${theme.info(`new: ${newCount}, exists: ${total - newCount}, source: ${total}, target: ${_.size(targetTags)}`)}`);
 
     let skipped = 0;
     const progressBar = this.createProgressBar(newCount);
@@ -590,7 +590,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     progressBar.terminate();
-    log.warn(style.info(`Synced ${newCount - skipped}, skipped ${skipped} tags.`));
+    log.warn(theme.info(`Synced ${newCount - skipped}, skipped ${skipped} tags.`));
   }
 
   protected async getTags(repo: Git) {
