@@ -1,4 +1,4 @@
-import {Git} from "../../git";
+import {Git} from "ts-git";
 import * as fs from "fs";
 import * as path from 'path';
 import * as util from "util";

@@ -1,6 +1,6 @@
 {
   "name": "@gitsync/sync",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Sync commits to another repository",
   "keywords": [
     "gitsync",
@@ -21,14 +21,14 @@
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "dependencies": {
-    "@gitsync/log": "^1.0.0",
+    "@gitsync/log": "^0.1.0",
     "@types/lodash": "^4.14.138",
     "@types/progress": "^2.0.3",
     "@types/yargs": "^13.0.2",
-    "chalk-theme": "^1.0.0",
+    "chalk-theme": "^0.1.0",
     "lodash": "^4.17.15",
     "progress": "^2.0.3",
-    "ts-git": "^1.0.0",
+    "ts-git": "^0.1.0",
     "yargs": "^13.0.0"
   }
 }
