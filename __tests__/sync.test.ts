@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as log from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
-import {createRepo, removeRepos, sync, logMessage, disableColor} from './tester';
+import {createRepo, removeRepos, sync, logMessage, disableColor} from '@gitsync/test';
 import Sync from "../index";
 
 beforeAll(() => {

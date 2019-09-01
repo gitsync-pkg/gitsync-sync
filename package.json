@@ -30,5 +30,8 @@
     "progress": "^2.0.3",
     "ts-git": "^0.1.0",
     "yargs": "^13.0.0"
+  },
+  "devDependencies": {
+    "@gitsync/test": "^0.1.0"
   }
 }
