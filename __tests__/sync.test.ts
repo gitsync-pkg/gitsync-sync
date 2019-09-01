@@ -2,8 +2,20 @@ import * as fs from 'fs';
 import * as log from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
-import {createRepo, removeRepos, sync, logMessage, disableColor} from '@gitsync/test';
+import {createRepo, removeRepos, logMessage, disableColor, changeDir, resetDir} from '@gitsync/test';
 import Sync from "../index";
+import {Git} from "ts-git";
+
+const sync = async (source: Git, options: any, instance: Sync = null) => {
+  changeDir(source);
+  const sync = instance || new Sync();
+  await sync.sync(Object.assign({
+    // TODO
+    $0: '',
+    _: [],
+  }, options));
+  resetDir();
+};
 
 beforeAll(() => {
   disableColor();
