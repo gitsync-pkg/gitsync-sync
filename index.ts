@@ -114,7 +114,7 @@ To reset to previous HEAD:
    */
   protected async initRepo(repo: string) {
     // Load from existing dir
-    if ((await fsp.stat(repo)).isDirectory()) {
+    if (await this.isDir(repo)) {
       const repoInstance = git(path.resolve(repo));
       const result = await repoInstance.run(['rev-parse', '--is-bare-repository']);
       if (result === 'false') {
@@ -1014,6 +1014,14 @@ Please follow the steps to resolve the conflicts:
       total: total,
       width: 50,
     });
+  }
+
+  protected async isDir(dir: string) {
+    try {
+      return (await fsp.stat(dir)).isDirectory();
+    } catch (e) {
+      return false;
+    }
   }
 }
 
