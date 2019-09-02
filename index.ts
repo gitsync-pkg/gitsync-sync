@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as util from 'util';
 import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
+import {promises as fsp} from 'fs';
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -60,8 +61,9 @@ class Sync {
 
   async sync(argv: SyncArguments) {
     Object.assign(this.argv, argv);
-    this.source = git(path.resolve('.'));
-    this.target = git(path.resolve(this.argv.target));
+    this.source = await this.initRepo('.');
+    this.target = await this.initRepo(this.argv.target);
+
     this.sourcePath = this.argv.sourcePath;
     this.targetPath = this.argv.targetPath;
 
@@ -105,6 +107,33 @@ To reset to previous HEAD:
       log.warn(message);
       throw e;
     }
+  }
+
+  /**
+   * Create repo instance from local directory or remote URL
+   */
+  protected async initRepo(repo: string) {
+    // Load from existing dir
+    if ((await fsp.stat(repo)).isDirectory()) {
+      const repoInstance = git(path.resolve(repo));
+      const result = await repoInstance.run(['rev-parse', '--is-bare-repository']);
+      if (result === 'false') {
+        return repoInstance;
+      }
+    }
+
+    // TODO read from @gitsync/config
+    const cacheDir = '../.gitsync';
+
+    // Clone from bare repo or remote url
+    const repoDir = cacheDir + '/' + repo.replace(/[:@/\\]/g, '-');
+    if (!fs.existsSync(repoDir)) {
+      await fsp.mkdir(repoDir, {recursive: true});
+    }
+
+    const repoInstance = git(repoDir);
+    await repoInstance.run(['clone', repo, '.']);
+    return repoInstance;
   }
 
   protected async syncCommits() {

@@ -1005,4 +1005,17 @@ To reset to previous HEAD:
 
     expect(fs.existsSync(target.getFile('Test.txt'))).toBeTruthy();
   });
+
+  test('target is a repository', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const targetBare = await createRepo(true);
+    await sync(source, {
+      target: targetBare.dir,
+      sourcePath: '.',
+    });
+
+    expect(fs.existsSync(source.dir + '/../.gitsync/' + targetBare.dir.replace(/[:@/\\]/g, '-') + '/test.txt')).toBeTruthy();
+  });
 });
