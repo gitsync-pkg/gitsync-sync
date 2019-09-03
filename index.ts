@@ -1,6 +1,7 @@
 import {Arguments} from "yargs";
 import git, {Git} from 'ts-git';
 import log from '@gitsync/log';
+import {Config} from '@gitsync/config';
 import theme from 'chalk-theme';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -58,8 +59,11 @@ class Sync {
   private isConflict: boolean;
   private workTree: Git;
   private conflictBranch: string;
+  private config: Config;
 
   async sync(argv: SyncArguments) {
+    this.config = new Config;
+
     Object.assign(this.argv, argv);
     this.source = await this.initRepo('.');
     this.target = await this.initRepo(this.argv.target);
@@ -122,11 +126,8 @@ To reset to previous HEAD:
       }
     }
 
-    // TODO read from @gitsync/config
-    const cacheDir = '../.gitsync';
-
     // Clone from bare repo or remote url
-    const repoDir = cacheDir + '/' + repo.replace(/[:@/\\]/g, '-');
+    const repoDir = this.config.getBaseDir() + '/' + repo.replace(/[:@/\\]/g, '-');
     if (!fs.existsSync(repoDir)) {
       await fsp.mkdir(repoDir, {recursive: true});
     }

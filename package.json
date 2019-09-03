@@ -21,6 +21,7 @@
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "dependencies": {
+    "@gitsync/config": "^0.1.0",
     "@gitsync/log": "^0.1.0",
     "@types/lodash": "^4.14.138",
     "@types/progress": "^2.0.3",
