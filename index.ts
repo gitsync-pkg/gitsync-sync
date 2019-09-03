@@ -128,12 +128,13 @@ To reset to previous HEAD:
 
     // Clone from bare repo or remote url
     const repoDir = this.config.getBaseDir() + '/' + repo.replace(/[:@/\\]/g, '-');
+    const repoInstance = git(repoDir);
+
     if (!fs.existsSync(repoDir)) {
       await fsp.mkdir(repoDir, {recursive: true});
+      await repoInstance.run(['clone', repo, '.']);
     }
 
-    const repoInstance = git(repoDir);
-    await repoInstance.run(['clone', repo, '.']);
     return repoInstance;
   }
 
