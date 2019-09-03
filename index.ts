@@ -152,7 +152,7 @@ To reset to previous HEAD:
     this.origBranch = targetBranch;
 
     if (this.currentBranch && targetBranch !== this.defaultBranch) {
-      if (!targetBranches.includes(targetBranch)) {
+      if (!targetBranches.includes(this.defaultBranch)) {
         await this.target.run(['checkout', '-b', this.defaultBranch]);
       } else {
         await this.target.run(['checkout', this.defaultBranch]);
