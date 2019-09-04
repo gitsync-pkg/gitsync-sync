@@ -35,7 +35,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: targetDir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const message = logMessage();
@@ -45,7 +45,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: targetDir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const message2 = logMessage();
@@ -66,7 +66,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const message = logMessage();
@@ -80,7 +80,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const message2 = logMessage();
@@ -97,7 +97,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
       noTags: true,
     });
 
@@ -118,7 +118,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: 'package-name'
+      sourceDir: 'package-name'
     });
 
     const tags = await target.run(['tag', '-l']);
@@ -126,7 +126,7 @@ describe('sync command', () => {
     expect(tags).not.toContain('1.0.0');
   });
 
-  test('create tag that commit not in sync path', async () => {
+  test('create tag that commit not in sync dir', async () => {
     const source = await createRepo();
     await source.commitFile('package-name/test.txt');
     await source.commitFile('test.txt');
@@ -135,7 +135,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: 'package-name'
+      sourceDir: 'package-name'
     });
 
     const message = logMessage();
@@ -159,35 +159,35 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.'
+      sourceDir: '.'
     });
 
     const tags = await target.run(['tag', '-l']);
     expect(tags).toContain('1.0.0');
   });
 
-  test('sourcePath argument', async () => {
+  test('sourceDir argument', async () => {
     const source = await createRepo();
     await source.commitFile('package-name/package.txt');
 
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: 'package-name'
+      sourceDir: 'package-name'
     });
 
     expect(fs.existsSync(target.getFile('package.txt'))).toBe(true);
   });
 
-  test('targetPath argument', async () => {
+  test('targetDir argument', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
 
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name'
+      sourceDir: '.',
+      targetDir: 'package-name'
     });
 
     expect(fs.existsSync(target.getFile('package-name/test.txt'))).toBe(true);
@@ -203,8 +203,8 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
       branches: 'master',
     });
 
@@ -223,8 +223,8 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
       branches: 'custom',
     });
 
@@ -248,8 +248,8 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     expect(logMessage()).toContain('Branches: new: 3, exists: 0, source: 3, target: 0');
@@ -284,8 +284,8 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     expect(await target.getBranch()).toBe('master');
@@ -304,7 +304,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(logMessage()).toContain('Branches: new: 2, exists: 0, source: 2, target: 0');
@@ -320,7 +320,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(logMessage()).toContain('Branches: new: 0, exists: 2, source: 2, target: 2');
@@ -344,8 +344,8 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: '.',
+      sourceDir: '.',
+      targetDir: '.',
       preserveCommit: true,
     });
 
@@ -363,7 +363,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
       preserveCommit: false,
     });
 
@@ -380,7 +380,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
       after: Math.floor(new Date().getTime() / 1000) + 1,
     });
 
@@ -390,7 +390,7 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
       after: Math.floor(new Date().getTime() / 1000) - 1,
     });
 
@@ -408,7 +408,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
       maxCount: 1,
     });
 
@@ -420,7 +420,7 @@ describe('sync command', () => {
     expect(fs.existsSync(await target.getFile('test.txt'))).toBeFalsy();
   });
 
-  test('sync will exclude file not in source path', async () => {
+  test('sync will exclude file not in source dir', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await source.commitFile('package-name/test2.txt');
@@ -428,7 +428,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: 'package-name',
+      sourceDir: 'package-name',
     });
 
     expect(fs.existsSync(await target.getFile('test2.txt'))).toBeTruthy();
@@ -441,21 +441,21 @@ describe('sync command', () => {
 
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const files = await util.promisify(fs.readdir)(target.dir);
     expect(files).toEqual(['.git']);
   });
 
-  test('invalid source path', async () => {
+  test('invalid source dir', async () => {
     const source = await createRepo();
 
     let error;
     try {
       await sync(source, {
         target: '123',
-        sourcePath: 'not-found',
+        sourceDir: 'not-found',
       });
     } catch (e) {
       error = e;
@@ -476,7 +476,7 @@ describe('sync command', () => {
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const tarlogMessage = await target.run(['log', '-1', '--format=%B']);
@@ -543,7 +543,7 @@ Commits
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const log = await target.run(['log', '-1', '--format=%B']);
@@ -570,7 +570,7 @@ Commits
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     const content = fs.readFileSync(target.getFile('test.txt'), 'utf-8');
@@ -589,7 +589,7 @@ Commits
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.existsSync(target.getFile(file))).toBeFalsy();
@@ -602,7 +602,7 @@ Commits
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     await source.run(['checkout', '-b', 'branch']);
@@ -623,7 +623,7 @@ Commits
     // Source repository contains target repository, so conflict will be resolved and won't create conflict branch
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.readFileSync(target.getFile('test.txt'), 'utf-8')).toBe('merged content');
@@ -639,7 +639,7 @@ Commits
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     // Generate conflict content
@@ -653,7 +653,7 @@ Commits
     try {
       await sync(source, {
         target: target.dir,
-        sourcePath: '.',
+        sourceDir: '.',
       });
     } catch (e) {
       error = e;
@@ -690,7 +690,7 @@ Please follow the steps to resolve the conflicts:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     // Generate conflict content
@@ -704,7 +704,7 @@ Please follow the steps to resolve the conflicts:
     try {
       await sync(source, {
         target: target.dir,
-        sourcePath: '.',
+        sourceDir: '.',
       });
     } catch (e) {
       error = e;
@@ -718,7 +718,7 @@ Please follow the steps to resolve the conflicts:
 
     await sync(target, {
       target: source.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.readFileSync(source.getFile('test.txt'), 'utf-8')).toBe('resolved by to repo');
@@ -753,8 +753,8 @@ Please follow the steps to resolve the conflicts:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name'
+      sourceDir: '.',
+      targetDir: 'package-name'
     });
 
     const files = await util.promisify(fs.readdir)(target.getFile('package-name'));
@@ -792,8 +792,8 @@ Please follow the steps to resolve the conflicts:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     const files = await util.promisify(fs.readdir)(target.getFile('package-name'));
@@ -828,8 +828,8 @@ Please follow the steps to resolve the conflicts:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     expect(fs.existsSync(target.getFile('package-name/text.txt'))).toBeTruthy();
@@ -855,8 +855,8 @@ Please follow the steps to resolve the conflicts:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
-      targetPath: 'package-name',
+      sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     expect(fs.existsSync(target.getFile('package-name/test.txt'))).toBeTruthy();
@@ -878,7 +878,7 @@ Please follow the steps to resolve the conflicts:
     try {
       await sync(source, {
         target: target.dir,
-        sourcePath: '.',
+        sourceDir: '.',
       }, syncInstance);
     } catch (e) {
       error = e;
@@ -918,7 +918,7 @@ To reset to previous HEAD:
     try {
       await sync(source, {
         target: target.dir,
-        sourcePath: '.',
+        sourceDir: '.',
       }, syncInstance);
     } catch (e) {
       error = e;
@@ -954,7 +954,7 @@ To reset to previous HEAD:
     try {
       await sync(source, {
         target: target.dir,
-        sourcePath: '.',
+        sourceDir: '.',
       }, syncInstance);
     } catch (e) {
       error = e;
@@ -983,7 +983,7 @@ To reset to previous HEAD:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.existsSync(target.getFile('Test.txt'))).toBeTruthy();
@@ -1000,7 +1000,7 @@ To reset to previous HEAD:
     const target = await createRepo();
     await sync(source, {
       target: target.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.existsSync(target.getFile('Test.txt'))).toBeTruthy();
@@ -1013,7 +1013,7 @@ To reset to previous HEAD:
     const targetBare = await createRepo(true);
     await sync(source, {
       target: targetBare.dir,
-      sourcePath: '.',
+      sourceDir: '.',
     });
 
     expect(fs.existsSync(source.dir + '/../.gitsync/' + targetBare.dir.replace(/[:@/\\]/g, '-') + '/test.txt')).toBeTruthy();

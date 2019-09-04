@@ -17,8 +17,8 @@ const rename = util.promisify(fs.rename);
 
 export interface SyncArguments extends Arguments {
   target: string
-  sourcePath: string
-  targetPath?: string
+  sourceDir: string
+  targetDir?: string
   branches?: string,
   after?: string,
   maxCount?: number,
@@ -43,12 +43,12 @@ class Sync {
     $0: '',
     _: [],
     target: '.',
-    sourcePath: '',
-    targetPath: '.',
+    sourceDir: '',
+    targetDir: '.',
     preserveCommit: true,
   };
-  private sourcePath: string;
-  private targetPath: string;
+  private sourceDir: string;
+  private targetDir: string;
   private currentBranch: string;
   private defaultBranch: string;
   private origBranch: string;
@@ -68,11 +68,11 @@ class Sync {
     this.source = await this.initRepo('.');
     this.target = await this.initRepo(this.argv.target);
 
-    this.sourcePath = this.argv.sourcePath;
-    this.targetPath = this.argv.targetPath;
+    this.sourceDir = this.argv.sourceDir;
+    this.targetDir = this.argv.targetDir;
 
-    if (!fs.existsSync(this.sourcePath)) {
-      throw new Error(`Directory "${this.sourcePath}" does not exist in current repository.`);
+    if (!fs.existsSync(this.sourceDir)) {
+      throw new Error(`Directory "${this.sourceDir}" does not exist in current repository.`);
     }
 
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
@@ -103,7 +103,7 @@ To retry your command with verbose logs:
       message += `
 To reset to previous HEAD:
 
-    1. cd ${this.target.dir}/${this.targetPath}
+    1. cd ${this.target.dir}/${this.targetDir}
     2. ${this.initHash ? 'git reset --hard ' + this.initHash : 'git rm --cached -r *'}
     ${!this.initHash ? '3. git update-ref -d HEAD' : ''}
 `;
@@ -142,8 +142,8 @@ To reset to previous HEAD:
     const sourceBranches = await this.parseBranches(this.source);
     const targetBranches = await this.parseBranches(this.target);
 
-    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePath);
-    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPath);
+    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourceDir);
+    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetDir);
 
     const branch = await this.getBranchFromLog(sourceLogs);
     this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
@@ -226,7 +226,7 @@ The conflict ${this.pluralize('branch', branchCount, 'es')}:
 ${branchTips}
 Please follow the steps to resolve the conflicts:
 
-    1. cd ${this.target.dir}/${this.targetPath}
+    1. cd ${this.target.dir}/${this.targetDir}
     2. git checkout BRANCH-NAME // Replace BRANCH-NAME to your branch name
     3. git merge ${this.getConflictBranchName('BRANCH-NAME')}
     4. // Follow the tips to resolve the conflicts
@@ -306,19 +306,19 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async findTargetTagHash(sourceHash: string) {
-    const sourcePathHash = await this.source.run([
+    const sourceDirHash = await this.source.run([
       'log',
       '--format=%h',
       '-1',
       sourceHash,
       '--',
-      this.sourcePath,
+      this.sourceDir,
     ]);
-    if (!sourcePathHash) {
+    if (!sourceDirHash) {
       return false;
     }
 
-    const targetHash = this.getTargetHash(sourcePathHash);
+    const targetHash = this.getTargetHash(sourceDirHash);
     if (!targetHash) {
       return false;
     }
@@ -379,7 +379,7 @@ Please follow the steps to resolve the conflicts:
       '--format=%n',
       hash,
       '--',
-      this.sourcePath,
+      this.sourceDir,
     ];
 
     let patch = await this.source.run(args);
@@ -406,14 +406,14 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    if (this.sourcePath && this.sourcePath !== '.') {
-      patchArgs.push('-p' + (this.strCount(this.sourcePath, '/') + 2));
+    if (this.sourceDir && this.sourceDir !== '.') {
+      patchArgs.push('-p' + (this.strCount(this.sourceDir, '/') + 2));
     }
 
-    if (this.targetPath && this.targetPath !== '.') {
+    if (this.targetDir && this.targetDir !== '.') {
       patchArgs = patchArgs.concat([
         '--directory',
-        this.targetPath,
+        this.targetDir,
       ]);
     }
 
@@ -449,7 +449,7 @@ Please follow the steps to resolve the conflicts:
         '--skip=1',
         hash,
         '--',
-        this.sourcePath,
+        this.sourceDir,
       ]);
 
       const [date, message] = this.explode(' ', log, 2);
@@ -491,21 +491,21 @@ Please follow the steps to resolve the conflicts:
         parents[i],
         hash,
         '--',
-        this.sourcePath,
+        this.sourceDir,
       ], {
         trimEnd: false,
       }) + "\n";
     }
 
     // TODO normalize
-    let sourcePath = this.sourcePath;
-    if (this.sourcePath === '.') {
-      sourcePath = '';
+    let sourceDir = this.sourceDir;
+    if (this.sourceDir === '.') {
+      sourceDir = '';
     }
 
     let removeLength: number;
-    if (sourcePath) {
-      removeLength = sourcePath.length + 1;
+    if (sourceDir) {
+      removeLength = sourceDir.length + 1;
     } else {
       removeLength = 0;
     }
@@ -533,17 +533,17 @@ Please follow the steps to resolve the conflicts:
       '--',
     ].concat(updateFiles));
 
-    const targetFullPath = this.target.dir + '/' + this.targetPath;
+    const targetFullDir = this.target.dir + '/' + this.targetDir;
 
     // Delete first and then update, so that when the change is renamed,
     // ensure that the file will not be deleted.
     removeFiles.forEach((file) => {
-      unlink(targetFullPath + '/' + file.substr(removeLength));
+      unlink(targetFullDir + '/' + file.substr(removeLength));
     });
 
     for (let key in updateFiles) {
       let file = updateFiles[key];
-      let target = targetFullPath + '/' + file.substr(removeLength);
+      let target = targetFullDir + '/' + file.substr(removeLength);
       let dir = path.dirname(target);
       if (!fs.existsSync(dir)) {
         await mkdir(path.dirname(target));
