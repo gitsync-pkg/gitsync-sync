@@ -119,7 +119,7 @@ To reset to previous HEAD:
   protected async initRepo(repo: string) {
     // Load from existing dir
     if (await this.isDir(repo)) {
-      const repoInstance = git(path.resolve(repo));
+      const repoInstance = this.createGit(path.resolve(repo));
       const result = await repoInstance.run(['rev-parse', '--is-bare-repository']);
       if (result === 'false') {
         return repoInstance;
@@ -128,7 +128,7 @@ To reset to previous HEAD:
 
     // Clone from bare repo or remote url
     const repoDir = this.config.getBaseDir() + '/' + repo.replace(/[:@/\\]/g, '-');
-    const repoInstance = git(repoDir);
+    const repoInstance = this.createGit(repoDir);
 
     if (!fs.existsSync(repoDir)) {
       await fsp.mkdir(repoDir, {recursive: true});
@@ -566,7 +566,7 @@ Please follow the steps to resolve the conflicts:
   protected async getWorkTree(repo: Git, tempDir: string) {
     if (!this.workTree) {
       await repo.run(['worktree', 'add', '-f', tempDir, '--no-checkout', '--detach']);
-      this.workTree = new Git(tempDir);
+      this.workTree = this.createGit(tempDir);
     }
     return this.workTree;
   }
@@ -1024,6 +1024,12 @@ Please follow the steps to resolve the conflicts:
     } catch (e) {
       return false;
     }
+  }
+
+  protected createGit(dir: string) {
+    return git(dir, {
+      logger: log
+    });
   }
 }
 
