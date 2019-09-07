@@ -1,5 +1,5 @@
 import {Arguments} from "yargs";
-import git, {Git} from 'ts-git';
+import git, {Git} from 'git-cli-wrapper';
 import log from '@gitsync/log';
 import {Config} from '@gitsync/config';
 import theme from 'chalk-theme';

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as util from 'util';
 import {createRepo, removeRepos, logMessage, disableColor, changeDir, resetDir} from '@gitsync/test';
 import Sync from "../index";
-import {Git} from "ts-git";
+import {Git} from "git-cli-wrapper";
 
 const sync = async (source: Git, options: any, instance: Sync = null) => {
   changeDir(source);

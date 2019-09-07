@@ -36,7 +36,7 @@
     "lodash": "^4.17.15",
     "multimatch": "^4.0.0",
     "progress": "^2.0.3",
-    "ts-git": "^0.1.2",
+    "git-cli-wrapper": "^0.1.2",
     "yargs": "^13.0.0"
   },
   "devDependencies": {
