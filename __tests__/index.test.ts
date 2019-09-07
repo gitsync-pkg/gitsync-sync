@@ -22,7 +22,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  //removeRepos();
+  removeRepos();
 });
 
 describe('sync command', () => {
