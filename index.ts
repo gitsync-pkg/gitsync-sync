@@ -2,7 +2,7 @@ import {Arguments} from "yargs";
 import git, {Git} from 'ts-git';
 import log from '@gitsync/log';
 import {Config} from '@gitsync/config';
-import theme from 'chalk-theme';
+import theme from 'chalk-theme2';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
