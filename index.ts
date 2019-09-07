@@ -10,6 +10,7 @@ import * as util from 'util';
 import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
 import {promises as fsp} from 'fs';
+import * as multimatch from 'multimatch';
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -20,6 +21,7 @@ export interface SyncArguments extends Arguments {
   sourceDir: string
   targetDir?: string
   branches?: string,
+  filterTags?: [],
   after?: string,
   maxCount?: number,
   preserveCommit?: boolean,
@@ -28,6 +30,10 @@ export interface SyncArguments extends Arguments {
 export interface Tag {
   hash: string
   annotated: boolean
+}
+
+export interface Tags {
+  [key: string]: Tag;
 }
 
 export interface StringStringMap {
@@ -575,7 +581,7 @@ Please follow the steps to resolve the conflicts:
     const sourceTags = await this.getTags(this.source);
     const targetTags = await this.getTags(this.target);
 
-    const newTags: Record<string, Tag> = this.keyDiff(sourceTags, targetTags);
+    const newTags: Tags = this.filterTags(this.keyDiff(sourceTags, targetTags));
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
@@ -622,6 +628,22 @@ Please follow the steps to resolve the conflicts:
 
     progressBar.terminate();
     log.warn(theme.info(`Synced ${newCount - skipped}, skipped ${skipped} tags.`));
+  }
+
+  protected filterTags(tags: Tags): Tags {
+    if (!this.argv.filterTags.length) {
+      return tags;
+    }
+
+    let newTags: Tags = {};
+    const keys = multimatch(Object.keys(tags), this.argv.filterTags);
+    for (const key of keys) {
+      if (typeof tags[key] !== 'undefined') {
+        newTags[key] = tags[key];
+      }
+    }
+
+    return newTags;
   }
 
   protected async getTags(repo: Git) {

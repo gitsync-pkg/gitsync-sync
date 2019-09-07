@@ -88,7 +88,7 @@ describe('sync command', () => {
     expect(message2).toContain('Synced 0, skipped 0 tags.');
   })
 
-  test('sync with no-tags option', async () => {
+  test('no-tags option', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await source.run(['tag', '1.0.0']);
@@ -105,6 +105,26 @@ describe('sync command', () => {
 
     const tags = await target.run(['tag', '-l']);
     expect(tags).toBe('');
+  });
+
+  test('filter-tags option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.run(['tag', '@test/api@0.1.0']);
+    await source.run(['tag', '@test/log@0.1.0']);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filterTags: [
+        "@test/log@*"
+      ],
+    });
+
+    const tags = await target.run(['tag', '-l']);
+    expect(tags).toBe('@test/log@0.1.0');
   });
 
   test('sync tag not found', async () => {
