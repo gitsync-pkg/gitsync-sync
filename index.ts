@@ -633,7 +633,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected filterTags(tags: Tags): Tags {
-    if (!this.argv.filterTags.length) {
+    if (!this.argv.filterTags || !this.argv.filterTags.length) {
       return tags;
     }
 
