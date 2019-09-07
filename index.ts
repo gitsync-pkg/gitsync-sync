@@ -458,19 +458,25 @@ Please follow the steps to resolve the conflicts:
         this.sourceDir,
       ]);
 
-      const [date, message] = this.explode(' ', log, 2);
-      const shortMessage = this.explode("\n", message, 2)[0];
-
-      const targetHash = await this.target.run([
-        'log',
-        '--after=' + date,
-        '--before=' + date,
-        '--grep',
-        shortMessage,
-        '--fixed-strings',
-        '--format=%H',
-        '--all',
-      ]);
+      let targetHash;
+      if (log) {
+        const [date, message] = this.explode(' ', log, 2);
+        const shortMessage = this.explode("\n", message, 2)[0];
+        targetHash = await this.target.run([
+          'log',
+          '--after=' + date,
+          '--before=' + date,
+          '--grep',
+          shortMessage,
+          '--fixed-strings',
+          '--format=%H',
+          '--all',
+        ]);
+      } else {
+        // @see test: change content then rename cause conflict
+        // Fallback to current hash
+        targetHash = await this.target.run(['rev-parse', 'HEAD']);
+      }
 
       await this.target.run(['reset', '--hard', 'HEAD']);
       const branch: string = await this.target.getBranch();

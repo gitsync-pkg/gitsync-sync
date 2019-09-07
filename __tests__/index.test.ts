@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as log from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
-import {createRepo, removeRepos, logMessage, disableColor, changeDir, resetDir} from '@gitsync/test';
+import {createRepo, removeRepos, logMessage, disableColor, changeDir, resetDir, catchError} from '@gitsync/test';
 import Sync from "../index";
 import {Git} from "git-cli-wrapper";
 
@@ -22,7 +22,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  removeRepos();
+  //removeRepos();
 });
 
 describe('sync command', () => {
@@ -1037,5 +1037,29 @@ To reset to previous HEAD:
     });
 
     expect(fs.existsSync(source.dir + '/../.gitsync/' + targetBare.dir.replace(/[:@/\\]/g, '-') + '/test.txt')).toBeTruthy();
+  });
+
+  test('change content then rename cause conflict', async () => {
+    const source = await createRepo();
+    await source.commitFile('package-name/test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package-name',
+    });
+
+    await source.commitFile('package-name/test.txt', 'changed content');
+    await source.run(['mv', 'package-name', 'new-package-name']);
+    await source.run(['commit', '-am', 'rename to new dir']);
+
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: 'new-package-name',
+      })
+    });
+
+    expect(error).toEqual(new Error('conflict'));
   });
 });
