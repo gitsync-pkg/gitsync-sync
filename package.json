@@ -9,9 +9,9 @@
   "author": "twinh <twinhuang@qq.com>",
   "homepage": "https://github.com/twinh/gitsync#readme",
   "license": "MIT",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "files": [
-    "index.ts"
+    "dist"
   ],
   "publishConfig": {
     "access": "public"
@@ -21,7 +21,10 @@
     "url": "git+https://github.com/twinh/gitsync.git"
   },
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "build": "tsc",
+    "clean": "rimraf dist coverage",
+    "test": "jest",
+    "prepare": "yarn build"
   },
   "dependencies": {
     "@gitsync/config": "^0.1.0",
