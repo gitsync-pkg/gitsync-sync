@@ -581,16 +581,18 @@ Please follow the steps to resolve the conflicts:
     const sourceTags = await this.getTags(this.source);
     const targetTags = await this.getTags(this.target);
 
-    const newTags: Tags = this.filterTags(this.keyDiff(sourceTags, targetTags));
+    const newTags: Tags = this.keyDiff(sourceTags, targetTags);
+    const filterTags: Tags = this.filterTags(newTags);
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
-    log.warn(`Tags: ${theme.info(`new: ${newCount}, exists: ${total - newCount}, source: ${total}, target: ${_.size(targetTags)}`)}`);
+    const filteredCount = _.size(filterTags);
+    log.warn(`Tags: ${theme.info(`new: ${filteredCount}, exists: ${total - newCount}, source: ${total}, target: ${_.size(targetTags)}`)}`);
 
     let skipped = 0;
     const progressBar = this.createProgressBar(newCount);
-    for (let name in newTags) {
-      let tag: Tag = newTags[name];
+    for (let name in filterTags) {
+      let tag: Tag = filterTags[name];
       const targetHash = await this.findTargetTagHash(tag.hash);
       if (!targetHash) {
         const result = await this.source.run([
@@ -627,7 +629,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     progressBar.terminate();
-    log.warn(theme.info(`Synced ${newCount - skipped}, skipped ${skipped} tags.`));
+    log.warn(theme.info(`Synced ${filteredCount - skipped}, skipped ${skipped} tags.`));
   }
 
   protected filterTags(tags: Tags): Tags {
@@ -908,21 +910,7 @@ Please follow the steps to resolve the conflicts:
     log = this.split(log, '#')[1];
     const hash = this.split(log, ' ')[0];
 
-    let result = await this.source.log([
-      '--format=%D',
-      '-1',
-      hash,
-    ]);
-    if (result) {
-      // Example: HEAD -> master, origin/master
-      let branch = this.explode(', ', result)[0];
-      if (branch.includes(' -> ')) {
-        branch = this.explode(' -> ', branch)[1];
-      }
-      return branch;
-    }
-
-    result = await this.source.run([
+    const result = await this.source.run([
       'branch',
       '--no-color',
       '--contains',
