@@ -32,7 +32,7 @@
     "@types/lodash": "^4.14.138",
     "@types/progress": "^2.0.3",
     "@types/yargs": "^13.0.2",
-    "chalk-theme2": "^0.1.1",
+    "chalk-theme": "^0.1.2",
     "lodash": "^4.17.15",
     "multimatch": "^4.0.0",
     "progress": "^2.0.3",
