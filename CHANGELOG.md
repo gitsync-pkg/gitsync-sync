@@ -1,3 +1,20 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [0.1.4](https://github.com/twinh/gitsync/compare/@gitsync/sync@0.1.3...@gitsync/sync@0.1.4) (2019-09-08)
+
+
+### Bug Fixes
+
+* fail to sync change content then rename dir ([8de4272](https://github.com/twinh/gitsync/commit/8de4272))
+* filterTags empty error ([0276e9c](https://github.com/twinh/gitsync/commit/0276e9c))
+
+
+
+
+
 ## [0.1.3](https://github.com/twinh/gitsync/compare/@gitsync/sync@0.1.3...@gitsync/sync@0.1.3) (2019-09-08)
 
 
@@ -15,6 +32,3 @@
 * Allow <target> argument to be a git url, close [#6](https://github.com/twinh/gitsync/issues/6) ([20d1615](https://github.com/twinh/gitsync/commit/20d1615))
 * pass all repo config value to sync ([a065bbf](https://github.com/twinh/gitsync/commit/a065bbf))
 * read baseDir from config file ([8e9783b](https://github.com/twinh/gitsync/commit/8e9783b))
-
-
-
