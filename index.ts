@@ -20,7 +20,8 @@ export interface SyncArguments extends Arguments {
   target: string
   sourceDir: string
   targetDir?: string
-  branches?: string,
+  includeBranches?: string | string[],
+  excludeBranches?: string | string[],
   filterTags?: [],
   after?: string,
   maxCount?: number,
@@ -860,17 +861,31 @@ Please follow the steps to resolve the conflicts:
 
   protected async parseBranches(repo: Git) {
     const repoBranches = await this.getBranches(repo);
-    if (!this.argv.branches || this.argv.branches === '*') {
-      return repoBranches;
+    return this.filter(repoBranches, this.toArray(this.argv.includeBranches), this.toArray(this.argv.excludeBranches));
+  }
+
+  protected toArray(item: any) {
+    if (!item) {
+      return [];
     }
 
-    const branches = this.argv.branches.split(' ');
-    const diff = this.diff(repoBranches, branches);
-    if (diff) {
-      log.warn('Ignore not exist branches: ' + diff.join(' '));
+    if (!Array.isArray(item)) {
+      return [item];
     }
 
-    return this.intersect(repoBranches, branches);
+    return item;
+  }
+
+  protected filter(array: any[], include: string[], exclude: string[]): any[] {
+    if (include.length === 0 && exclude.length === 0) {
+      return array;
+    }
+
+    let patterns = include.concat(exclude.map(item => '!' + item));
+    if (include.length === 0) {
+      patterns.unshift('**');
+    }
+    return multimatch(array, patterns);
   }
 
   protected async getBranches(repo: Git) {

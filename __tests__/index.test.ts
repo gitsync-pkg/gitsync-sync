@@ -213,7 +213,7 @@ describe('sync command', () => {
     expect(fs.existsSync(target.getFile('package-name/test.txt'))).toBe(true);
   });
 
-  test('sync only master branch', async () => {
+  test('includeBranches option', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
 
@@ -225,7 +225,27 @@ describe('sync command', () => {
       target: target.dir,
       sourceDir: '.',
       targetDir: 'package-name',
-      branches: 'master',
+      includeBranches: 'master',
+    });
+
+    expect(logMessage()).toContain('Branches: new: 1, exists: 0, source: 1, target: 0');
+    expect(fs.existsSync(target.getFile('package-name/test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test2.txt'))).toBeFalsy();
+  });
+
+  test('excludeBranches option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    await source.run(['checkout', '-b', 'feature/issue-1']);
+    await source.commitFile('test2.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      targetDir: 'package-name',
+      excludeBranches: 'feature/*',
     });
 
     expect(logMessage()).toContain('Branches: new: 1, exists: 0, source: 1, target: 0');
@@ -245,7 +265,7 @@ describe('sync command', () => {
       target: target.dir,
       sourceDir: '.',
       targetDir: 'package-name',
-      branches: 'custom',
+      includeBranches: 'custom',
     });
 
     expect(logMessage()).toContain('Branches: new: 1, exists: 0, source: 1, target: 0');
