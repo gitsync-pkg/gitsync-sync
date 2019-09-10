@@ -22,7 +22,8 @@ export interface SyncArguments extends Arguments {
   targetDir?: string
   includeBranches?: string | string[],
   excludeBranches?: string | string[],
-  filterTags?: [],
+  includeTags?: string | string[],
+  excludeTags?: string | string[],
   after?: string,
   maxCount?: number,
   preserveCommit?: boolean,
@@ -589,7 +590,7 @@ Please follow the steps to resolve the conflicts:
     const targetTags = await this.getTags(this.target);
 
     const newTags: Tags = this.keyDiff(sourceTags, targetTags);
-    const filterTags: Tags = this.filterTags(newTags);
+    const filterTags: Tags = this.filterObjectKey(newTags, this.argv.includeTags, this.argv.excludeTags);
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
@@ -637,22 +638,6 @@ Please follow the steps to resolve the conflicts:
 
     progressBar.terminate();
     log.warn(theme.info(`Synced ${filteredCount - skipped}, skipped ${skipped} tags.`));
-  }
-
-  protected filterTags(tags: Tags): Tags {
-    if (!this.argv.filterTags || !this.argv.filterTags.length) {
-      return tags;
-    }
-
-    let newTags: Tags = {};
-    const keys = multimatch(Object.keys(tags), this.argv.filterTags);
-    for (const key of keys) {
-      if (typeof tags[key] !== 'undefined') {
-        newTags[key] = tags[key];
-      }
-    }
-
-    return newTags;
   }
 
   protected async getTags(repo: Git) {
@@ -861,7 +846,7 @@ Please follow the steps to resolve the conflicts:
 
   protected async parseBranches(repo: Git) {
     const repoBranches = await this.getBranches(repo);
-    return this.filter(repoBranches, this.toArray(this.argv.includeBranches), this.toArray(this.argv.excludeBranches));
+    return this.filter(repoBranches, this.argv.includeBranches, this.argv.excludeBranches);
   }
 
   protected toArray(item: any) {
@@ -876,7 +861,10 @@ Please follow the steps to resolve the conflicts:
     return item;
   }
 
-  protected filter(array: any[], include: string[], exclude: string[]): any[] {
+  protected filter(array: any[], include: string | string[], exclude: string | string[]): any[] {
+    include = this.toArray(include);
+    exclude = this.toArray(exclude);
+
     if (include.length === 0 && exclude.length === 0) {
       return array;
     }
@@ -886,6 +874,26 @@ Please follow the steps to resolve the conflicts:
       patterns.unshift('**');
     }
     return multimatch(array, patterns);
+  }
+
+  protected filterObjectKey(object: Record<string, any>, include: string | string[], exclude: string | string[]) {
+    include = this.toArray(include);
+    exclude = this.toArray(exclude);
+
+    if (include.length === 0 && exclude.length === 0) {
+      return object;
+    }
+
+    let patterns = include.concat(exclude.map(item => '!' + item));
+    if (include.length === 0) {
+      patterns.unshift('**');
+    }
+
+    const keys = multimatch(Object.keys(object), patterns);
+    return keys.reduce((newObject: Record<string, any>, key: string) => {
+      newObject[key] = object[key];
+      return newObject;
+    }, {})
   }
 
   protected async getBranches(repo: Git) {

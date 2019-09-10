@@ -103,11 +103,11 @@ describe('sync command', () => {
 
     expect(logMessage()).not.toContain('Synced 0, skipped 0 tags.');
 
-    const tags = await target.run(['tag', '-l']);
+    const tags = await target.run(['tag']);
     expect(tags).toBe('');
   });
 
-  test('filter-tags option', async () => {
+  test('include-tags option', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await source.run(['tag', '@test/api@0.1.0']);
@@ -118,13 +118,61 @@ describe('sync command', () => {
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
-      filterTags: [
+      includeTags: [
         "@test/log@*"
       ],
     });
 
-    const tags = await target.run(['tag', '-l']);
+    const tags = await target.run(['tag']);
     expect(tags).toBe('@test/log@0.1.0');
+  });
+
+  test('exclude-tags option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.run(['tag', '@test/api@0.1.0']);
+    await source.run(['tag', '@test/log@0.1.0']);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      excludeTags: [
+        "@test/log@*"
+      ],
+    });
+
+    const tags = await target.run(['tag']);
+    expect(tags).toBe('@test/api@0.1.0');
+  });
+
+  test('include-tags and exclude-tags options', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await Promise.all([
+      source.run(['tag', '@test/log@0.1.0']),
+      source.run(['tag', '@test/api@0.1.0']),
+      source.run(['tag', '@test/test@0.1.0'])
+    ]);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      includeTags: [
+        '@test/log@*',
+      ],
+      excludeTags: [
+        "@test/api@*"
+      ],
+    });
+
+    const tags = await target.run(['tag']);
+    expect(tags).toContain('@test/log@0.1.0');
+    expect(tags).not.toContain('@test/test@0.1.0');
+    expect(tags).not.toContain('@test/api@0.1.0');
   });
 
   test('sync tag not found', async () => {
