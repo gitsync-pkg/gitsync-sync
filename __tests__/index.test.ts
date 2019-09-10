@@ -672,7 +672,7 @@ Commits
     await source.commitFile(file);
 
     await source.run(['rm', file]);
-    await source.run(['ci', '-am', 'remove file ' + file]);
+    await source.run(['commit', '-am', 'remove file ' + file]);
 
     const target = await createRepo();
     await sync(source, {

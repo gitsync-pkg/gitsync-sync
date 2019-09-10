@@ -50,6 +50,7 @@
   "ciDependencies": {
     "@gitsync/config": "gitsync-pkg/gitsync-config#master",
     "@gitsync/log": "gitsync-pkg/gitsync-log#master",
+    "@gitsync/test": "gitsync-pkg/gitsync-test#master",
     "git-cli-wrapper": "twinh/git-cli-wrapper#master"
   }
 }
