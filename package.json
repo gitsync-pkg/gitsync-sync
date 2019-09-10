@@ -46,5 +46,10 @@
     "jest": "^24.9.0",
     "ts-jest": "^24.0.2",
     "typescript": "^3.5.3"
+  },
+  "ciDependencies": {
+    "@gitsync/config": "gitsync-pkg/gitsync-config#master",
+    "@gitsync/log": "gitsync-pkg/gitsync-log#master",
+    "git-cli-wrapper": "twinh/git-cli-wrapper#master"
   }
 }
