@@ -2,13 +2,21 @@ const fs = require('fs');
 const fileName = process.cwd() + '/package.json';
 const config = require(fileName);
 
-if (typeof config.devDependencies === 'undefined') {
-  config.devDependencies = {};
+for (const dependency in config.ciDependencies) {
+  if (!config.ciDependencies.hasOwnProperty(dependency)) {
+    continue;
+  }
+
+  if (typeof config.dependencies[dependency] !== 'undefined') {
+    config.dependencies[dependency] = config.ciDependencies[dependency];
+    continue;
+  }
+  config.devDependencies[dependency] = config.ciDependencies[dependency];
 }
 
-Object.assign(config.devDependencies, config.ciDependencies);
-
-fs.writeFile(fileName, JSON.stringify(config, null, 2), function (err) {
+const content = JSON.stringify(config, null, 2);
+console.log('The new file content is \n', content);
+fs.writeFile(fileName, content, function (err) {
   if (err) {
     return console.log(err);
   }
