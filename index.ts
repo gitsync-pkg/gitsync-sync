@@ -79,10 +79,6 @@ class Sync {
     this.sourceDir = this.argv.sourceDir;
     this.targetDir = this.argv.targetDir;
 
-    if (!fs.existsSync(this.sourceDir)) {
-      throw new Error(`Directory "${this.sourceDir}" does not exist in current repository.`);
-    }
-
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
     try {
       const result = await this.syncCommits();

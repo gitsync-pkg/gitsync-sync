@@ -549,19 +549,17 @@ describe('sync command', () => {
     expect(files).toEqual(['.git']);
   });
 
-  test('invalid source dir', async () => {
+  test('allow not exist source dir', async () => {
     const source = await createRepo();
+    const target = await createRepo();
 
-    let error;
-    try {
-      await sync(source, {
-        target: '123',
-        sourceDir: 'not-found',
+    const noError = await catchError(async () => {
+      return await sync(source, {
+        target: target.dir,
+        sourceDir: 'not-exist',
       });
-    } catch (e) {
-      error = e;
-    }
-    expect(error).toEqual(new Error('Directory "not-found" does not exist in current repository.'));
+    });
+    expect(noError).toBeUndefined();
   });
 
   test('long commit body', async () => {
