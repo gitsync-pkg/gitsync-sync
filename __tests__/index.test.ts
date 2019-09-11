@@ -2,7 +2,16 @@ import * as fs from 'fs';
 import * as log from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
-import {createRepo, removeRepos, logMessage, disableColor, changeDir, resetDir, catchError} from '@gitsync/test';
+import {
+  createRepo,
+  removeRepos,
+  logMessage,
+  disableColor,
+  changeDir,
+  resetDir,
+  catchError,
+  clearMessage
+} from '@gitsync/test';
 import Sync from "../index";
 import {Git} from "git-cli-wrapper";
 
@@ -24,6 +33,10 @@ beforeAll(() => {
 afterAll(() => {
   removeRepos();
 });
+
+afterEach(() => {
+  clearMessage();
+})
 
 describe('sync command', () => {
   test('sync commits', async () => {
