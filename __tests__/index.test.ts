@@ -14,6 +14,7 @@ import {
 } from '@gitsync/test';
 import Sync from "../index";
 import {Git} from "git-cli-wrapper";
+import {Config} from "@gitsync/config";
 
 const sync = async (source: Git, options: any, instance: Sync = null) => {
   changeDir(source);
@@ -1106,16 +1107,18 @@ To reset to previous HEAD:
   });
 
   test('target is a repository', async () => {
+    const config = new Config();
     const source = await createRepo();
     await source.commitFile('test.txt');
 
     const targetBare = await createRepo(true);
-    await sync(source, {
+    const options = {
       target: targetBare.dir,
       sourceDir: '.',
-    });
+    };
+    await sync(source, options);
 
-    expect(fs.existsSync(source.dir + '/../.gitsync/' + targetBare.dir.replace(/[:@/\\]/g, '-') + '/test.txt')).toBeTruthy();
+    expect(fs.existsSync(path.join(source.dir, await config.getRepoDirByRepo(options), 'test.txt'))).toBeTruthy();
   });
 
   test('change content then rename cause conflict', async () => {
