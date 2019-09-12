@@ -935,7 +935,32 @@ Please follow the steps to resolve the conflicts:
     log = this.split(log, '#')[1];
     const hash = this.split(log, ' ')[0];
 
-    const result = await this.source.run([
+    let result = await this.source.log([
+      '--format=%D',
+      '-1',
+      hash,
+    ]);
+    if (result) {
+      // Example:
+      // 1. HEAD -> master, tag: 1.0.1, tag: 1.0.0, origin/master
+      // 2. tag: 1.0.1, tag: 1.0.0, origin/branch
+      let branch = '';
+      for (const ref of result.split(', ')) {
+        if (ref.startsWith('tag: ')) {
+          continue;
+        }
+
+        if (ref.includes(' -> ')) {
+          branch = ref.split(' -> ')[1];
+        } else {
+          branch = ref;
+        }
+        break;
+      }
+      return branch;
+    }
+
+    result = await this.source.run([
       'branch',
       '--no-color',
       '--contains',

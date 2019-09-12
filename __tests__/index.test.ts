@@ -391,9 +391,44 @@ describe('sync command', () => {
     });
 
     expect(await target.getBranch()).toBe('master');
+    expect(await target.run(['log', '-n', '1', 'master'])).toContain('add test.txt');
 
     // Not origin/branch
     expect(await target.run(['branch', '-a'])).toContain('branch');
+    expect(await target.run(['log', '-n', '1', 'branch'])).toContain('add test2.txt');
+  });
+
+  test('sync remote branch contains tags to local', async () => {
+    const bare = await createRepo(true);
+    const source = await createRepo();
+    await source.run(['remote', 'add', 'origin', bare.dir]);
+
+    await source.commitFile('test.txt');
+    await source.run(['push', '-u', 'origin', 'master']);
+
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('test2.txt');
+
+    // the commit contains tag and remote branch
+    await source.run(['tag', '1.0.0']);
+    await source.run(['push', '-u', 'origin', 'branch']);
+
+    await source.run(['checkout', 'master']);
+    await source.run(['branch', '-d', 'branch']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      targetDir: 'package-name',
+    });
+
+    expect(await target.getBranch()).toBe('master');
+    expect(await target.run(['log', '-n', '1', 'master'])).toContain('add test.txt');
+
+    // Not origin/branch
+    expect(await target.run(['branch', '-a'])).toContain('branch');
+    expect(await target.run(['log', '-n', '1', 'branch'])).toContain('add test2.txt');
   });
 
   test('test sync existing branches', async () => {
