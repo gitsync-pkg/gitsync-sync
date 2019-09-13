@@ -6,7 +6,6 @@ import {
   createRepo,
   removeRepos,
   logMessage,
-  disableColor,
   changeDir,
   resetDir,
   catchError,
@@ -26,10 +25,6 @@ const sync = async (source: Git, options: any, instance: Sync = null) => {
   }, options));
   resetDir();
 };
-
-beforeAll(() => {
-  disableColor();
-});
 
 afterAll(() => {
   removeRepos();
