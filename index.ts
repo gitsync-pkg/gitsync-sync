@@ -73,8 +73,8 @@ class Sync {
     this.config = new Config;
 
     Object.assign(this.argv, argv);
-    this.source = await this.initRepo('.');
-    this.target = await this.initRepo(this.argv.target);
+    this.source = this.createGit('.');
+    this.target = this.createGit(await this.config.getRepoDirByRepo(this.argv, true));
 
     this.sourceDir = this.argv.sourceDir;
     this.targetDir = this.argv.targetDir;
@@ -115,31 +115,6 @@ To reset to previous HEAD:
       log.warn(message);
       throw e;
     }
-  }
-
-  /**
-   * Create repo instance from local directory or remote URL
-   */
-  protected async initRepo(repo: string) {
-    // Load from existing dir
-    if (await this.isDir(repo)) {
-      const repoInstance = this.createGit(path.resolve(repo));
-      const result = await repoInstance.run(['rev-parse', '--is-bare-repository']);
-      if (result === 'false') {
-        return repoInstance;
-      }
-    }
-
-    // Clone from bare repo or remote url
-    const repoDir = this.config.getBaseDir() + '/' + repo.replace(/[:@/\\]/g, '-');
-    const repoInstance = this.createGit(repoDir);
-
-    if (!fs.existsSync(repoDir)) {
-      await fsp.mkdir(repoDir, {recursive: true});
-      await repoInstance.run(['clone', repo, '.']);
-    }
-
-    return repoInstance;
   }
 
   protected async syncCommits() {
