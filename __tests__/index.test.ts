@@ -898,6 +898,7 @@ Please follow the steps to resolve the conflicts:
     const source = await createRepo();
     await source.addFile('delete-after-merge.txt');
     await source.addFile('rename-after-merge.txt');
+    await source.addFile('chmod-after-merge.txt');
     await source.commitFile('modify-after-merge.txt', "a\n\nb");
 
     await source.run(['checkout', '-b', 'branch']);
@@ -917,6 +918,7 @@ Please follow the steps to resolve the conflicts:
     await source.run(['mv', 'rename-after-merge.txt', 'Rename-after-merge.txt']);
     await source.addFile('modify-after-merge.txt', 'd');
     await source.addFile('add-after-merge.txt');
+    await util.promisify(fs.chmod)(source.getFile('chmod-after-merge.txt'), 0o755);
     await source.run(['commit', '-am', 'merge success']);
 
     const target = await createRepo();
@@ -932,6 +934,9 @@ Please follow the steps to resolve the conflicts:
     expect(files).toContain('modify-after-merge.txt');
     expect(files).toContain('add-after-merge.txt');
     expect(fs.readFileSync(target.getFile('package-name/modify-after-merge.txt'), 'utf-8')).toBe('d');
+
+    const mode755 = await target.run(['ls-files', '-s', 'package-name/chmod-after-merge.txt']);
+    expect(mode755.startsWith('100755')).toBeTruthy();
   });
 
   test('merge more than two parents', async () => {
@@ -1173,5 +1178,27 @@ To reset to previous HEAD:
     });
 
     expect(error).toEqual(new Error('conflict'));
+  });
+
+  test('reserve file mode', async () => {
+    const source = await createRepo();
+    await source.addFile('644.txt');
+
+    await source.addFile('755.txt');
+    await util.promisify(fs.chmod)(source.getFile('755.txt'), 0o755);
+    await source.run(['commit', '-am', 'add test.txt']);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    const mode644 = await target.run(['ls-files', '-s', '644.txt']);
+    expect(mode644.startsWith('100644')).toBeTruthy();
+
+    const mode755 = await target.run(['ls-files', '-s', '755.txt']);
+    expect(mode755.startsWith('100755')).toBeTruthy();
   });
 });
