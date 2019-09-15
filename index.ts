@@ -73,8 +73,8 @@ class Sync {
     this.config = new Config;
 
     Object.assign(this.argv, argv);
-    this.source = this.createGit('.');
-    this.target = this.createGit(await this.config.getRepoDirByRepo(this.argv, true));
+    this.source = git('.');
+    this.target = git(await this.config.getRepoDirByRepo(this.argv, true));
 
     this.sourceDir = this.argv.sourceDir;
     this.targetDir = this.argv.targetDir;
@@ -557,7 +557,7 @@ Please follow the steps to resolve the conflicts:
   protected async getWorkTree(repo: Git, tempDir: string) {
     if (!this.workTree) {
       await repo.run(['worktree', 'add', '-f', tempDir, '--no-checkout', '--detach']);
-      this.workTree = this.createGit(tempDir);
+      this.workTree = git(tempDir);
     }
     return this.workTree;
   }
@@ -1069,12 +1069,6 @@ Please follow the steps to resolve the conflicts:
     } catch (e) {
       return false;
     }
-  }
-
-  protected createGit(dir: string) {
-    return git(dir, {
-      logger: log
-    });
   }
 }
 
