@@ -249,6 +249,12 @@ Please follow the steps to resolve the conflicts:
       }
 
       const targetBranchHash = await this.target.run(['rev-parse', localBranch]);
+      if (targetBranchHash === targetHash) {
+        log.debug('Branch is up to date, skipping');
+        progressBar.tick();
+        continue;
+      }
+
       const result = await this.target.run([
         'merge-base',
         targetBranchHash,
