@@ -1204,7 +1204,7 @@ To reset to previous HEAD:
 
   test('remove work tree after sync', async () => {
     const source = await createRepo();
-    await source.commitFile('test.txt', 'inital');
+    await source.commitFile('test.txt', 'initial');
 
     await source.run(['checkout', '-b', 'branch']);
     await source.commitFile('test.txt', 'branch');
@@ -1228,5 +1228,35 @@ To reset to previous HEAD:
 
     const workTree = await source.run(['worktree', 'list']);
     expect(workTree).not.toContain('detached HEAD');
+  });
+
+  test('update current branch to last commit', async () => {
+    const source = await createRepo();
+    const target = await createRepo();
+
+    await source.commitFile('test.txt');
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('branch.txt');
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    await source.run(['checkout', 'master']);
+    await source.run(['merge', 'branch']);
+
+    // target master branch should sync to last commit
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    const log = await target.log(['--oneline', '-1']);
+    expect(log).toContain('add branch.txt');
   });
 });

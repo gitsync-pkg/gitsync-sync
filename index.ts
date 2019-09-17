@@ -224,12 +224,6 @@ Please follow the steps to resolve the conflicts:
       let sourceBranch: string = sourceBranches[key];
       let localBranch = this.toLocalBranch(sourceBranch);
 
-      // 当前branch已经同步到最新
-      if (localBranch === this.currentBranch) {
-        progressBar.tick();
-        continue;
-      }
-
       if (!_.includes(targetBranches, sourceBranch)) {
         const result = await this.createOrUpdateTargetBranch(sourceBranch);
         if (!result) {
@@ -267,7 +261,11 @@ Please follow the steps to resolve the conflicts:
           skipped++;
         }
       } else {
-        localBranch = this.toLocalBranch(sourceBranch);
+        // or this.conflictBranches.includes(localBranch)
+        if (localBranch === this.currentBranch) {
+          continue;
+        }
+
         await this.target.run(['branch', '-f', this.getConflictBranchName(localBranch), targetHash]);
         this.conflictBranches.push(localBranch);
       }
@@ -282,7 +280,15 @@ Please follow the steps to resolve the conflicts:
     const sourceHash = await this.source.run(['rev-parse', sourceBranch]);
     const targetHash = await this.findTargetTagHash(sourceHash);
     if (targetHash) {
-      await this.target.run(['branch', '-f', this.toLocalBranch(sourceBranch), targetHash]);
+
+      // Cannot update the current branch, so use reset instead
+      sourceBranch = this.toLocalBranch(sourceBranch);
+      if (sourceBranch === this.currentBranch) {
+        await this.target.run(['reset', '--hard', targetHash]);
+      } else {
+        await this.target.run(['branch', '-f', sourceBranch, targetHash]);
+      }
+
       return true;
     } else {
       await this.logCommitNotFound(sourceHash, sourceBranch);
