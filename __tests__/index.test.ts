@@ -1201,4 +1201,32 @@ To reset to previous HEAD:
     const mode755 = await target.run(['ls-files', '-s', '755.txt']);
     expect(mode755.startsWith('100755')).toBeTruthy();
   });
+
+  test('remove work tree after sync', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt', 'inital');
+
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('test.txt', 'branch');
+
+    await source.run(['checkout', 'master']);
+    await source.commitFile('test.txt', 'master');
+
+    try {
+      await source.run(['merge', 'branch']);
+    } catch (e) {
+      // Ignore merge error
+    }
+
+    await source.commitFile('test.txt', 'merged');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    const workTree = await source.run(['worktree', 'list']);
+    expect(workTree).not.toContain('detached HEAD');
+  });
 });

@@ -641,6 +641,10 @@ Please follow the steps to resolve the conflicts:
 
   protected async clean() {
     await this.removeTempBranches(this.target);
+    if (this.workTree) {
+      await this.source.run(['worktree', 'remove', '-f', this.workTree.dir]);
+      this.workTree = null;
+    }
   }
 
   protected async checkoutTempBranch(branch: string) {
