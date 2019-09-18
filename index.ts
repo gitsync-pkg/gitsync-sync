@@ -75,7 +75,11 @@ class Sync {
 
     Object.assign(this.argv, argv);
     this.source = git('.');
+
     this.target = git(await this.config.getRepoDirByRepo(this.argv, true));
+    if (await this.target.run(['status', '--short'])) {
+      throw new Error(`Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`);
+    }
 
     this.sourceDir = this.argv.sourceDir;
     this.targetDir = this.argv.targetDir;

@@ -1273,4 +1273,20 @@ To reset to previous HEAD:
     const log = await target.log(['--oneline', '-1']);
     expect(log).toContain('add branch.txt');
   });
+
+  test('target has uncommitted changed cant sync', async () => {
+    const source = await createRepo();
+    const target = await createRepo();
+
+    await target.addFile('test.txt');
+
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+
+    expect(error).toEqual(new Error(`Target repository "${target.dir}" has uncommitted changes, please commit or remove changes before syncing.`));
+  });
 });
