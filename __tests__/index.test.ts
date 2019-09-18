@@ -116,7 +116,7 @@ describe('sync command', () => {
     expect(tags).toBe('');
   });
 
-  test('include-tags option', async () => {
+  test('includeTags option', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await source.run(['tag', '@test/api@0.1.0']);
@@ -136,7 +136,7 @@ describe('sync command', () => {
     expect(tags).toBe('@test/log@0.1.0');
   });
 
-  test('exclude-tags option', async () => {
+  test('excludeTags option', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await source.run(['tag', '@test/api@0.1.0']);
@@ -156,7 +156,7 @@ describe('sync command', () => {
     expect(tags).toBe('@test/api@0.1.0');
   });
 
-  test('include-tags and exclude-tags options', async () => {
+  test('includeTags and excludeTags options', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     await Promise.all([

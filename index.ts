@@ -10,7 +10,7 @@ import * as util from 'util';
 import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
 import {promises as fsp} from 'fs';
-import * as multimatch from 'multimatch';
+import * as micromatch from 'micromatch';
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -860,7 +860,7 @@ Please follow the steps to resolve the conflicts:
     if (include.length === 0) {
       patterns.unshift('**');
     }
-    return multimatch(array, patterns);
+    return micromatch(array, patterns);
   }
 
   protected filterObjectKey(object: Record<string, any>, include: string | string[], exclude: string | string[]) {
@@ -876,7 +876,7 @@ Please follow the steps to resolve the conflicts:
       patterns.unshift('**');
     }
 
-    const keys = multimatch(Object.keys(object), patterns);
+    const keys = micromatch(Object.keys(object), patterns);
     return keys.reduce((newObject: Record<string, any>, key: string) => {
       newObject[key] = object[key];
       return newObject;
