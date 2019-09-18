@@ -254,7 +254,7 @@ Please follow the steps to resolve the conflicts:
         targetBranchHash,
         targetHash,
       ]);
-      if (result === targetBranchHash) {
+      if ([targetBranchHash, targetHash].includes(result)) {
         // 新的分支包含老的，说明没有冲突，直接更新老分支
         const branchResult = await this.createOrUpdateTargetBranch(sourceBranch);
         if (!branchResult) {
