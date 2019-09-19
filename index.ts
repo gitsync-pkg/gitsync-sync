@@ -298,6 +298,7 @@ Please follow the steps to resolve the conflicts:
       if (sourceBranch === this.currentBranch) {
         if (this.isContains) {
           // Update target HEAD only if source fully contains target
+          // otherwise, target will lost commits that not in the source
           await this.target.run(['reset', '--hard', targetHash]);
         }
       } else {
