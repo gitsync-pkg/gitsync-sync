@@ -296,7 +296,10 @@ Please follow the steps to resolve the conflicts:
       // Cannot update the current branch, so use reset instead
       sourceBranch = this.toLocalBranch(sourceBranch);
       if (sourceBranch === this.currentBranch) {
-        await this.target.run(['reset', '--hard', targetHash]);
+        if (this.isContains) {
+          // Update target HEAD only if source fully contains target
+          await this.target.run(['reset', '--hard', targetHash]);
+        }
       } else {
         await this.target.run(['branch', '-f', sourceBranch, targetHash]);
       }

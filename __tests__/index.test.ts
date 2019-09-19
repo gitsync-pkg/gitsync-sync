@@ -1289,4 +1289,24 @@ To reset to previous HEAD:
 
     expect(error).toEqual(new Error(`Target repository "${target.dir}" has uncommitted changes, please commit or remove changes before syncing.`));
   });
+
+  test('sync back wont reset source repository HEAD', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    await source.commitFile('test2.txt');
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+    });
+
+    const log = await source.run(['log', '--oneline', '-1']);
+    expect(log).toContain('test2.txt');
+  });
 });
