@@ -1029,7 +1029,7 @@ To retry your command with verbose logs:
 
 To reset to previous HEAD:
 
-    1. cd ${target.dir}/.
+    1. cd ${target.dir}
     2. git rm --cached -r *
     3. git update-ref -d HEAD`);
   });
@@ -1065,7 +1065,7 @@ To reset to previous HEAD:
 
 To reset to previous HEAD:
 
-    1. cd ${target.dir}/.
+    1. cd ${target.dir}
     2. git rm --cached -r *
     3. git update-ref -d HEAD`);
 
@@ -1105,7 +1105,7 @@ To retry your command with verbose logs:
 
 To reset to previous HEAD:
 
-    1. cd ${target.dir}/.
+    1. cd ${target.dir}
     2. git reset --hard ${await target.run(['rev-list', '-n', '1', '--all'])}`);
   });
 

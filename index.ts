@@ -107,7 +107,7 @@ To retry your command with verbose logs:
       message += `
 To reset to previous HEAD:
 
-    1. cd ${this.target.dir}/${this.targetDir}
+    1. cd ${this.target.dir}
     2. ${this.initHash ? 'git reset --hard ' + this.initHash : 'git rm --cached -r *'}
     ${!this.initHash ? '3. git update-ref -d HEAD' : ''}
 `;
