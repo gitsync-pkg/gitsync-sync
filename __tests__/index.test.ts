@@ -1293,7 +1293,7 @@ To reset to previous HEAD:
   test('repository has new commit wont create conflict branch', async () => {
     const source = await createRepo();
     await source.commitFile('package-name/test.txt');
-    await source.run(['checkout','-b', 'branch']);
+    await source.run(['checkout', '-b', 'branch']);
 
     // new commit
     await source.commitFile('test2.txt');
@@ -1374,5 +1374,37 @@ To reset to previous HEAD:
     });
 
     expect(await source.log(['--oneline', '-1'])).toContain('test3.txt');
+  });
+
+  test('commit will ignore untracked files', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt', 'initial content', 'init');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    // Generate conflict content
+    await source.commitFile('test.txt', 'new content by from repo', 'update by from repo');
+    await target.commitFile('test.txt', 'new content by to repo', 'update by to repo');
+
+    // Important!: file will change from ignored to untracked when target repository checkout branch from previous commit
+    await util.promisify(fs.writeFile)(path.join(target.dir, 'ignore.txt'), 'ignore');
+    await target.commitFile('.gitignore', 'ignore.txt');
+
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+    expect(error).toEqual(new Error('conflict'));
+
+    await target.run(['checkout', 'master-gitsync-conflict']);
+
+    const status = await target.run(['status', '-s']);
+    expect(status).toBe('?? ignore.txt');
   });
 });
