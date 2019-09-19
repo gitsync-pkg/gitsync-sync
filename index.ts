@@ -521,7 +521,7 @@ Please follow the steps to resolve the conflicts:
     });
 
     // @link https://stackoverflow.com/a/39948726
-    const tempDir = this.target.dir + '/.git/git-sync';
+    const tempDir = this.target.dir + '/.git/gitsync-worktree';
     const workTree = await this.getWorkTree(this.source, tempDir);
     await workTree.run([
       'checkout',
@@ -1055,7 +1055,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected getConflictBranchName(name: string): string {
-    return name + '-git-sync-conflict';
+    return name + '-gitsync-conflict';
   }
 
   protected strCount(string: string, search: string) {

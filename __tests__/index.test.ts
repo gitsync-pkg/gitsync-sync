@@ -759,7 +759,7 @@ Commits
     expect(fs.readFileSync(target.getFile('test.txt'), 'utf-8')).toBe('merged content');
 
     const result = await target.run(['branch', '-l']);
-    expect(result).not.toContain('-git-sync-conflict');
+    expect(result).not.toContain('-gitsync-conflict');
   });
 
   test('source not contains target will create branch', async () => {
@@ -793,23 +793,23 @@ Commits
 
 The conflict branch:
 
-    master conflict with master-git-sync-conflict
+    master conflict with master-gitsync-conflict
 
 Please follow the steps to resolve the conflicts:
 
     1. cd ${target.dir}/.
     2. git checkout BRANCH-NAME // Replace BRANCH-NAME to your branch name
-    3. git merge BRANCH-NAME-git-sync-conflict
+    3. git merge BRANCH-NAME-gitsync-conflict
     4. // Follow the tips to resolve the conflicts
-    5. git branch -d BRANCH-NAME-git-sync-conflict // Remove temp branch
+    5. git branch -d BRANCH-NAME-gitsync-conflict // Remove temp branch
     6. "gitsync ..." to sync changes back to current repository`);
 
     expect(fs.readFileSync(target.getFile('test.txt'), 'utf-8')).toBe('new content by to repo');
 
     const result = await target.run(['branch', '-l']);
-    expect(result).toContain('master-git-sync-conflict');
+    expect(result).toContain('master-gitsync-conflict');
 
-    await target.run(['checkout', 'master-git-sync-conflict']);
+    await target.run(['checkout', 'master-gitsync-conflict']);
     expect(fs.readFileSync(target.getFile('test2.txt'), 'utf-8')).toBe('test2.txt');
   });
 
@@ -842,9 +842,9 @@ Please follow the steps to resolve the conflicts:
     expect(error).toEqual(new Error('conflict'));
 
     // Follow the steps to resolve the conflicts
-    await target.run(['merge', 'master-git-sync-conflict'], {mute: true});
+    await target.run(['merge', 'master-gitsync-conflict'], {mute: true});
     await target.commitFile('test.txt', 'resolved by to repo', 'resolved by to repo');
-    await target.run(['branch', '-d', 'master-git-sync-conflict']);
+    await target.run(['branch', '-d', 'master-gitsync-conflict']);
 
     await sync(target, {
       target: source.dir,
