@@ -275,10 +275,12 @@ Please follow the steps to resolve the conflicts:
         }
       } else if (result === targetHash) {
         // 目标分支有新的提交，不用处理
+        progressBar.tick();
         continue;
       } else {
         // or this.conflictBranches.includes(localBranch)
         if (localBranch === this.currentBranch) {
+          progressBar.tick();
           continue;
         }
 
