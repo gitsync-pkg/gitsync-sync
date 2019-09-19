@@ -746,7 +746,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async commit(hash: string) {
-    await this.target.run(['add', '-A']);
+    // Ignore untracked files
+    await this.target.run(['add', '-u']);
 
     const commit = await this.source.run(['show', '-s', '--format=%an|%ae|%ai|%cn|%ce|%ci|%B', hash]);
     // TODO split
