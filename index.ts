@@ -256,7 +256,7 @@ Please follow the steps to resolve the conflicts:
 
       const targetBranchHash = await this.target.run(['rev-parse', localBranch]);
       if (targetBranchHash === targetHash) {
-        log.debug('Branch is up to date, skipping');
+        log.debug(`Branch "${localBranch}" is up to date, skipping`);
         progressBar.tick();
         continue;
       }
@@ -266,12 +266,16 @@ Please follow the steps to resolve the conflicts:
         targetBranchHash,
         targetHash,
       ]);
-      if ([targetBranchHash, targetHash].includes(result)) {
+
+      if (result === targetBranchHash) {
         // 新的分支包含老的，说明没有冲突，直接更新老分支
         const branchResult = await this.createOrUpdateTargetBranch(sourceBranch);
         if (!branchResult) {
           skipped++;
         }
+      } else if (result === targetHash) {
+        // 目标分支有新的提交，不用处理
+        continue;
       } else {
         // or this.conflictBranches.includes(localBranch)
         if (localBranch === this.currentBranch) {
@@ -298,7 +302,7 @@ Please follow the steps to resolve the conflicts:
       if (sourceBranch === this.currentBranch) {
         if (this.isContains) {
           // Update target HEAD only if source fully contains target
-          // otherwise, target will lost commits that not in the source
+          // otherwise, target commits that not in the source will be lost
           await this.target.run(['reset', '--hard', targetHash]);
         }
       } else {

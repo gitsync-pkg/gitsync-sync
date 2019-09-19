@@ -1290,6 +1290,27 @@ To reset to previous HEAD:
     expect(error).toEqual(new Error(`Target repository "${target.dir}" has uncommitted changes, please commit or remove changes before syncing.`));
   });
 
+  test('repository has new commit wont create conflict branch', async () => {
+    const source = await createRepo();
+    await source.commitFile('package-name/test.txt');
+    await source.run(['checkout','-b', 'branch']);
+
+    // new commit
+    await source.commitFile('test2.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package-name',
+    });
+
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+      targetDir: 'package-name',
+    });
+  });
+
   test('sync back wont reset source repository HEAD', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
@@ -1308,5 +1329,50 @@ To reset to previous HEAD:
 
     const log = await source.run(['log', '--oneline', '-1']);
     expect(log).toContain('test2.txt');
+  });
+
+  test('sync back from directory wont reset source repository HEAD', async () => {
+    const source = await createRepo();
+    await source.commitFile('package-name/test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package-name',
+    });
+
+    await source.commitFile('test2.txt');
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+      targetDir: 'package-name',
+    });
+
+    const log = await source.run(['log', '--oneline', '-1']);
+    expect(log).toContain('test2.txt');
+  });
+
+  test('sync back from branch wont reset source repository HEAD', async () => {
+    const source = await createRepo();
+    await source.commitFile('package-name/test.txt');
+
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('package-name/test2.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package-name',
+    });
+
+    await source.commitFile('test3.txt');
+
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+      targetDir: 'package-name',
+    });
+
+    expect(await source.log(['--oneline', '-1'])).toContain('test3.txt');
   });
 });
