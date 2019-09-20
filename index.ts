@@ -65,6 +65,7 @@ class Sync {
   private tempBranches: any = {};
   private targetHashes: StringStringMap = {};
   private isConflict: boolean;
+  private isHistorical: boolean;
   private workTree: Git;
   private conflictBranch: string;
   private config: Config;
@@ -152,6 +153,8 @@ To reset to previous HEAD:
 
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogs = this.objectValueDiff(sourceLogs, targetLogs);
+    this.detectHistorical(newLogs, sourceLogs);
+
     const newCount = _.size(newLogs);
     const sourceCount = _.size(sourceLogs);
     const targetCount = _.size(targetLogs);
@@ -173,6 +176,7 @@ To reset to previous HEAD:
     );
 
     this.isContains = sourceCount - targetCount === newCount;
+    log.debug(`source repository ${this.isContains ? 'contains' : 'does not contain'} target repostitory`);
 
     const progressBar = this.createProgressBar(newCount);
     const hashes = _.reverse(Object.keys(newLogs));
@@ -226,6 +230,13 @@ Please follow the steps to resolve the conflicts:
 `);
 
     return !this.conflictBranches.length;
+  }
+
+  private detectHistorical(newLogs: StringStringMap, sourceLogs: StringStringMap) {
+    const newLogValues = Object.values(newLogs);
+    const newLogLast = newLogValues.length - 1;
+    this.isHistorical = newLogValues[newLogLast] !== Object.values(sourceLogs)[newLogLast];
+    log.debug(`Sync ${this.isHistorical ? 'historical' : 'new'} commits to target`);
   }
 
   protected async syncBranches(sourceBranches: any, targetBranches: any) {
@@ -491,7 +502,9 @@ Please follow the steps to resolve the conflicts:
           '--format=%H',
           '--all',
         ]);
-      } else {
+      }
+
+      if (!targetHash) {
         // @see test: change content then rename cause conflict
         // Fallback to current hash
         targetHash = await this.target.run(['rev-parse', 'HEAD']);
@@ -840,7 +853,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async handleConflict(hash: string, parents: string[]) {
-    if (this.isContains) {
+    if (this.isContains && !this.isHistorical) {
       await this.overwrite(hash, parents);
     } else {
       await this.syncToConflictBranch(hash);

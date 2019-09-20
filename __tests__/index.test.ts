@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import * as log from 'npmlog';
+import * as npmlog from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
 import {
@@ -12,8 +12,9 @@ import {
   clearMessage
 } from '@gitsync/test';
 import Sync from "../index";
-import {Git} from "git-cli-wrapper";
+import git, {Git} from "git-cli-wrapper";
 import {Config} from "@gitsync/config";
+import log from '@gitsync/log';
 
 const sync = async (source: Git, options: any, instance: Sync = null) => {
   changeDir(source);
@@ -1049,9 +1050,9 @@ To reset to previous HEAD:
   });
 
   test('sync error with rew repo with verbose log', async () => {
-    const level = log.level;
+    const level = npmlog.level;
     // @ts-ignore
-    log.level = 'verbose';
+    npmlog.level = 'verbose';
 
     const source = await createRepo();
     const target = await createRepo();
@@ -1084,7 +1085,7 @@ To reset to previous HEAD:
     3. git update-ref -d HEAD`);
 
     // @ts-ignore
-    log.level = level;
+    npmlog.level = level;
   });
 
   test('sync error with repo has commits', async () => {
@@ -1406,5 +1407,54 @@ To reset to previous HEAD:
 
     const status = await target.run(['status', '-s']);
     expect(status).toBe('?? ignore.txt');
+  });
+
+  test('sync historical commits will create branch to avoid overwrite', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    // Create a merge that only in the source repository
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('test.txt', 'branch content', 'branch content');
+    await source.run(['checkout', 'master']);
+    await source.commitFile('test.txt', 'master content', 'master content');
+    try {
+      await source.run(['merge', 'branch']);
+    } catch (e) {
+      // Ignore merge error
+    }
+    await source.commitFile('test.txt', 'merged content', 'merged content');
+    await source.run(['branch', '-d', 'branch']);
+
+    // TODO create in normal way
+    // Hack: change to same content
+    await source.addFile('test.txt', 'same content');
+    await target.addFile('test.txt', 'same content');
+    const now = new Date().getTime() / 1000;
+    await source.run(['commit', '-am', 'same content'], {env: {GIT_AUTHOR_DATE: now}});
+    await target.run(['commit', '-am', 'same content'], {env: {GIT_AUTHOR_DATE: now}});
+
+    // Sync the last commit
+    await source.commitFile('test.txt', 'new content');
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      maxCount: 1,
+    });
+
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+
+    expect(error).toEqual(new Error('conflict'));
   });
 });
