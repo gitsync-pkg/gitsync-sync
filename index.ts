@@ -306,6 +306,9 @@ Please follow the steps to resolve the conflicts:
           // Update target HEAD only if source fully contains target
           // otherwise, target commits that not in the source will be lost
           await this.target.run(['reset', '--hard', targetHash]);
+        } else {
+          log.info('Target repository has commits that have not been sync back to source repository, ' +
+            `do not update "${sourceBranch}" branch to avoid lost commits`);
         }
       } else {
         await this.target.run(['branch', '-f', sourceBranch, targetHash]);
