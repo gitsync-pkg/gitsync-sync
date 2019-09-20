@@ -937,6 +937,10 @@ Please follow the steps to resolve the conflicts:
 
     const mode755 = await target.run(['ls-files', '-s', 'package-name/chmod-after-merge.txt']);
     expect(mode755.startsWith('100755')).toBeTruthy();
+
+    // add-after-merge.txt will be tracked
+    const status = await target.run(['ls-files', '.', '--exclude-standard', '--others']);
+    expect(status).toEqual('');
   });
 
   test('merge more than two parents', async () => {

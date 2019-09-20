@@ -538,15 +538,22 @@ Please follow the steps to resolve the conflicts:
       unlink(targetFullDir + '/' + file.substr(removeLength));
     });
 
+    let targetFiles = [];
     for (let key in updateFiles) {
       let file = updateFiles[key];
-      let target = targetFullDir + '/' + file.substr(removeLength);
+      let targetFile = file.substr(removeLength);
+
+      targetFiles.push(path.join(this.targetDir, targetFile));
+      let target = targetFullDir + '/' + targetFile;
+
       let dir = path.dirname(target);
       if (!fs.existsSync(dir)) {
         await mkdir(path.dirname(target));
       }
       await rename(tempDir + '/' + file, target);
     }
+
+    await this.target.run(['add'].concat(targetFiles));
   }
 
   protected parseChangedFiles(result: string) {
