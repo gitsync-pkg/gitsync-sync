@@ -344,6 +344,12 @@ Please follow the steps to resolve the conflicts:
     hash = this.split(hash, '#')[1];
     let parent: string;
     [hash, parent] = this.split(hash, ' ');
+
+    // Use Git empty tree hash as first commit's parent
+    if (!parent) {
+      parent = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+    }
+
     const parents = parent.split(' ');
 
     let branch: string;
@@ -420,7 +426,10 @@ Please follow the steps to resolve the conflicts:
       await this.target.run(patchArgs, {input: patch});
     } catch (e) {
       if (this.isContains) {
-        await this.handleConflict(hash, [hash + '^']);
+        if (this.isHistorical) {
+          await this.syncToConflictBranch(hash);
+        }
+        await this.overwrite(hash, parents);
       } else {
         if (!this.isConflict) {
           await this.syncToConflictBranch(hash);
@@ -486,10 +495,9 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async overwrite(hash: string, parents: string[]) {
-    let result = '';
+    let results = [];
     for (let i in parents) {
-      // TODO 换行不正确?
-      result += await this.source.run([
+      results.push(await this.source.run([
         'diff-tree',
         '--name-status',
         '-r',
@@ -497,9 +505,7 @@ Please follow the steps to resolve the conflicts:
         hash,
         '--',
         this.sourceDir,
-      ], {
-        trimEnd: false,
-      }) + "\n";
+      ]));
     }
 
     // TODO normalize
@@ -515,7 +521,7 @@ Please follow the steps to resolve the conflicts:
       removeLength = 0;
     }
 
-    const files: StringStringMap = this.parseChangedFiles(result);
+    const files: StringStringMap = this.parseChangedFiles(results.join('\n'));
 
     const removeFiles: string[] = [];
     const updateFiles: string[] = [];
@@ -570,7 +576,7 @@ Please follow the steps to resolve the conflicts:
   protected parseChangedFiles(result: string) {
     const files: StringStringMap = {};
 
-    result.trimRight().split("\n").forEach((line: string) => {
+    result.trim().split("\n").forEach((line: string) => {
       const [status, file] = line.split("\t");
       files[file] = status.substr(0, 1);
     });
@@ -837,6 +843,8 @@ Please follow the steps to resolve the conflicts:
       // Use author timestamp instead of committer timestamp,
       // since that committer timestamp will be changed on rebase by default
       '--format=#%H %P-%at %s',
+      // Include "TREESAME" parent
+      '--full-history',
     ];
 
     if (this.argv.after) {

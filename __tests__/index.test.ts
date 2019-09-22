@@ -815,44 +815,54 @@ Please follow the steps to resolve the conflicts:
 
   test('resolve conflict and sync back to source repo', async () => {
     const source = await createRepo();
-    await source.commitFile('test.txt', 'initial content', 'init');
+    await source.commitFile('test.txt', 'final');
 
     const target = await createRepo();
+    await target.commitFile('test.txt', 'be overwritten');
+
+    // Sync "content" to target repository
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+    expect(error).toEqual(new Error('conflict'));
+
+    await target.run(['merge', 'master-gitsync-conflict']);
+    await target.run(['branch', '-d', 'master-gitsync-conflict']);
+    expect(fs.readFileSync(target.getFile('test.txt'), 'utf-8')).toBe('final');
+
+    // Sync "commits" to source repository
+    const error2 = await catchError(async () => {
+      await sync(target, {
+        target: source.dir,
+        sourceDir: '.',
+      });
+    });
+    expect(error2).toEqual(new Error('conflict'));
+
+    await source.run(['merge', 'master-gitsync-conflict', '--no-ff', '--no-commit']);
+    // Important!: two repositories should be consistent at the end, otherwise, it will be conflicted next time!
+    await source.commitFile('test.txt', 'final', 'merge from target');
+    await source.run(['branch', '-d', 'master-gitsync-conflict']);
+
+    // Sync "merge" to target repository
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
     });
 
-    // Generate conflict content
-    await source.commitFile('test.txt', 'new content by from repo', 'update by from repo');
-    await target.commitFile('test.txt', 'new content by to repo', 'update by to repo');
+    // Both have 3 commits
+    expect((await source.run(['log', '--oneline'])).match(/\n/g).length).toBe(2);
+    expect((await target.run(['log', '--oneline'])).match(/\n/g).length).toBe(2);
 
-    await source.commitFile('test2.txt');
-
-    // Source repository don't contain target repository, so conflict will not be resolved and created conflict branch
-    let error;
-    try {
-      await sync(source, {
-        target: target.dir,
-        sourceDir: '.',
-      });
-    } catch (e) {
-      error = e;
-    }
-    expect(error).toEqual(new Error('conflict'));
-
-    // Follow the steps to resolve the conflicts
-    await target.run(['merge', 'master-gitsync-conflict'], {mute: true});
-    await target.commitFile('test.txt', 'resolved by to repo', 'resolved by to repo');
-    await target.run(['branch', '-d', 'master-gitsync-conflict']);
-
+    // Sync back wont cause conflict
     await sync(target, {
       target: source.dir,
       sourceDir: '.',
     });
-
-    expect(fs.readFileSync(source.getFile('test.txt'), 'utf-8')).toBe('resolved by to repo');
-  }, 10000);
+  });
 
   test('sync change file when merge conflict', async () => {
     const source = await createRepo();
