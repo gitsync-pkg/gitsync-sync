@@ -1457,4 +1457,21 @@ To reset to previous HEAD:
 
     expect(error).toEqual(new Error('conflict'));
   });
+
+  test('sync empty commit in root directory', async () => {
+    const source = await createRepo();
+    await source.run(['commit', '-m', 'empty',  '--allow-empty']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    const log = await target.run(['log', '--format=%s']);
+    expect(log).toBe('empty');
+
+    const files = await util.promisify(fs.readdir)(target.dir);
+    expect(files).toEqual(['.git']);
+  });
 });

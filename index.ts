@@ -527,7 +527,7 @@ Please follow the steps to resolve the conflicts:
   protected async overwrite(hash: string, parents: string[]) {
     let results = [];
     for (let i in parents) {
-      results.push(await this.source.run([
+      let result = await this.source.run([
         'diff-tree',
         '--name-status',
         '-r',
@@ -535,7 +535,14 @@ Please follow the steps to resolve the conflicts:
         hash,
         '--',
         this.sourceDir,
-      ]));
+      ]);
+      if (result) {
+        results.push(result);
+      }
+    }
+    // Ignore empty commit
+    if (!results.length) {
+      return;
     }
 
     // TODO normalize
@@ -860,7 +867,7 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, branches: string[], path: string): Promise<StringStringMap> {
+  protected async getLogs(repo: Git, branches: string[], dir: string): Promise<StringStringMap> {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
     if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
@@ -895,10 +902,11 @@ Please follow the steps to resolve the conflicts:
       args.push('--all');
     }
 
-    if (path) {
+    // Do not specify root directory, so that logs will contain *empty* commits (include merges)
+    if (dir && dir != '.') {
       args = args.concat([
         '--',
-        path
+        dir
       ]);
     }
 
