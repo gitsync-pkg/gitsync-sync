@@ -706,7 +706,7 @@ Please follow the steps to resolve the conflicts:
     // This is the core logic to sync commits between two repositories.
     //
     // Target repository may not have any commits, so we mute the error.
-    const target = await this.target.run([
+    let target = await this.target.run([
       'log',
       '--after=' + date,
       '--before=' + date,
@@ -718,6 +718,33 @@ Please follow the steps to resolve the conflicts:
     ], {
       mute: true,
     });
+
+    if (!target) {
+      // Git log assumes that commits are sorted by date descend,
+      // and stops searching when the commit date is less than the specified date (--after option).
+      // If commits are not sorted by date descend (for example, merge or rebase causes the date order changed),
+      // the commit may not be found.
+      // So we need to remove the date limit and search again.
+      // This is still reproduced in git version 2.22.0 (2019-06-08).
+      const logs = await this.target.run([
+        'log',
+        '--grep',
+        message,
+        '--fixed-strings',
+        '--format=%H %at',
+        '--all',
+      ], {
+        mute: true,
+      });
+      const hashes: string[] = [];
+      logs.split('\n').forEach((log) => {
+        const [hash, logDate] = log.split(' ');
+        if (logDate === date) {
+          hashes.push(hash);
+        }
+      });
+      target = hashes.join('\n');
+    }
 
     if (target.includes("\n")) {
       throw new Error(`Expected to return one commit, but returned more than one commit with the same message in the same second, commit date: ${date}, message: ${message}: hashes: ${target}`);
