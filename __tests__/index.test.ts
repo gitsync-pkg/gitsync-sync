@@ -1497,4 +1497,34 @@ To reset to previous HEAD:
 
     expect(logMessage()).toContain('Commits: new: 0, exists: 1, source: 1, target: 1');
   });
+
+  test('getTargetHash fallback to search without date', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    await source.run(['tag', '1.0.0']);
+
+    // Simulation a new commit with old commit date
+    const now = new Date().getTime() / 1000 - 60;
+    await target.addFile('test2.txt');
+    await target.run(['commit', '-m', 'add test2.txt'], {
+      env: {
+        GIT_COMMITTER_DATE: now,
+        GIT_AUTHOR_DATE: now
+      }
+    });
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+    const tags = await target.run(['tag']);
+    expect(tags).toContain('1.0.0');
+  });
 });
