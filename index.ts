@@ -833,7 +833,7 @@ Please follow the steps to resolve the conflicts:
         return;
       }
 
-      const [hash, detail] = row.split('-', 2);
+      const [hash, detail] = this.split(row, '-');
       logs[hash] = detail;
     });
     return logs;
