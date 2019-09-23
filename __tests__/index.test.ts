@@ -1458,9 +1458,9 @@ To reset to previous HEAD:
     expect(error).toEqual(new Error('conflict'));
   });
 
-  test('sync empty commit in root directory', async () => {
+  test('sync empty commit to root directory', async () => {
     const source = await createRepo();
-    await source.run(['commit', '-m', 'empty',  '--allow-empty']);
+    await source.run(['commit', '-m', 'empty', '--allow-empty']);
 
     const target = await createRepo();
     await sync(source, {
@@ -1473,5 +1473,28 @@ To reset to previous HEAD:
 
     const files = await util.promisify(fs.readdir)(target.dir);
     expect(files).toEqual(['.git']);
+  });
+
+  test('sync empty commit to sub directory', async () => {
+    const now = new Date().getTime() / 1000;
+
+    const source = await createRepo();
+    await source.addFile('package-name/test.txt');
+    await source.run(['commit', '-m', 'empty'], {env: {GIT_AUTHOR_DATE: now}});
+
+    const target = await createRepo();
+    await target.run(['commit', '-m', 'empty', '--allow-empty'], {env: {GIT_AUTHOR_DATE: now}});
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package-name',
+      targetDir: 'package-name',
+    });
+
+    // Only have one commit
+    const log = await target.run(['log', '--format=%s']);
+    expect(log).toBe('empty');
+
+    expect(logMessage()).toContain('Commits: new: 0, exists: 1, source: 1, target: 1');
   });
 });

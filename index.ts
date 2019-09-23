@@ -152,12 +152,13 @@ To reset to previous HEAD:
     }
 
     // 找到当前仓库有,而目标仓库没有的记录
-    const newLogs = this.objectValueDiff(sourceLogs, targetLogs);
+    const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
+    const newLogs = await this.filterEmptyLogs(newLogsDiff);
     this.detectHistorical(newLogs, sourceLogs);
 
     const newCount = _.size(newLogs);
     const sourceCount = _.size(sourceLogs);
-    const targetCount = _.size(targetLogs);
+    const targetCount = _.size(targetLogs) + (_.size(newLogsDiff) - _.size(newLogs));
     log.info(
       `Commits: ${theme.info('new: %s, exists: %s, source: %s, target: %s')}`,
       newCount,
@@ -230,6 +231,37 @@ Please follow the steps to resolve the conflicts:
 `);
 
     return !this.conflictBranches.length;
+  }
+
+  private async filterEmptyLogs(logs: StringStringMap) {
+    const newLogs: StringStringMap = {};
+    for (let hash in logs) {
+      let fullHash = hash;
+
+      hash = this.split(hash, '#')[1];
+      let parent: string;
+      [hash, parent] = this.split(hash, ' ');
+
+      const targetHash = await this.getTargetHash(hash);
+      if (!targetHash) {
+        newLogs[fullHash] = logs[fullHash];
+        continue;
+      }
+
+      let result = await this.target.run([
+        'diff-tree',
+        '--no-commit-id',
+        '--name-only',
+        '-r',
+        targetHash,
+      ]);
+      if (result) {
+        newLogs[fullHash] = logs[fullHash];
+      }
+
+      // Ignore empty commit
+    }
+    return newLogs;
   }
 
   private detectHistorical(newLogs: StringStringMap, sourceLogs: StringStringMap) {
@@ -808,7 +840,6 @@ Please follow the steps to resolve the conflicts:
     this.targetHashes[hash] = target;
     return target;
   }
-
 
   protected async mergeParents(hash: string, parents: string[]) {
     let args = [
