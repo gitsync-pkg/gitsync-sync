@@ -845,6 +845,7 @@ Please follow the steps to resolve the conflicts:
       '--format=#%H %P-%at %s',
       // Include "TREESAME" parent
       '--full-history',
+      '--simplify-merges',
     ];
 
     if (this.argv.after) {
