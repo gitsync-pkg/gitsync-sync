@@ -160,20 +160,20 @@ To reset to previous HEAD:
     const sourceCount = _.size(sourceLogs);
     const targetCount = _.size(targetLogs) + (_.size(newLogsDiff) - _.size(newLogs));
     log.info(
-      `Commits: ${theme.info('new: %s, exists: %s, source: %s, target: %s')}`,
-      newCount,
-      sourceCount - newCount,
-      sourceCount,
-      targetCount,
+      `Commits: new: %s, exists: %s, source: %s, target: %s`,
+      theme.info(newCount.toString()),
+      theme.info((sourceCount - newCount).toString()),
+      theme.info(sourceCount.toString()),
+      theme.info(targetCount.toString()),
     );
 
     const newBranches = this.objectValueDiff(sourceBranches, targetBranches);
     log.info(
-      `Branches: ${theme.info('new: %s, exists: %s, source: %s, target: %s')}`,
-      _.size(newBranches),
-      _.size(sourceBranches) - _.size(newBranches),
-      _.size(sourceBranches),
-      _.size(targetBranches)
+      'Branches: new: %s, exists: %s, source: %s, target: %s',
+      theme.info(_.size(newBranches).toString()),
+      theme.info((_.size(sourceBranches) - _.size(newBranches)).toString()),
+      theme.info(_.size(sourceBranches).toString()),
+      theme.info(_.size(targetBranches).toString())
     );
 
     this.isContains = sourceCount - targetCount === newCount;
@@ -188,8 +188,8 @@ To reset to previous HEAD:
     progressBar.terminate();
 
     log.info(
-      theme.info('Synced %s %s.'),
-      newCount,
+      'Synced %s %s.',
+      theme.info(newCount.toString()),
       this.pluralize('commit', newCount)
     );
 
@@ -334,7 +334,11 @@ Please follow the steps to resolve the conflicts:
     }
 
     progressBar.terminate();
-    log.info(theme.info(`Synced ${_.size(sourceBranches) - skipped}, skipped ${skipped} branches.`));
+    log.info(
+      'Synced %s, skipped %s branches.',
+      theme.info((_.size(sourceBranches) - skipped).toString()),
+      theme.info(skipped.toString())
+    );
   }
 
   protected async createOrUpdateTargetBranch(sourceBranch: string) {
@@ -671,7 +675,13 @@ Please follow the steps to resolve the conflicts:
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
     const filteredCount = _.size(filterTags);
-    log.info(`Tags: ${theme.info(`new: ${filteredCount}, exists: ${total - newCount}, source: ${total}, target: ${_.size(targetTags)}`)}`);
+    log.info(
+      'Tags: new: %s, exists: %s, source: %s, target: %s',
+      theme.info(filteredCount.toString()),
+      theme.info((total - newCount).toString()),
+      theme.info(total.toString()),
+      theme.info(_.size(targetTags).toString())
+    );
 
     let skipped = 0;
     const progressBar = this.createProgressBar(newCount);
@@ -713,7 +723,11 @@ Please follow the steps to resolve the conflicts:
     }
 
     progressBar.terminate();
-    log.info(theme.info(`Synced ${filteredCount - skipped}, skipped ${skipped} tags.`));
+    log.info(
+      'Synced %s, skipped %s tags.',
+      theme.info((filteredCount - skipped).toString()),
+      theme.info(skipped.toString())
+    );
   }
 
   protected async getTags(repo: Git) {
