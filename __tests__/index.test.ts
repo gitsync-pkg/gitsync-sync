@@ -1527,4 +1527,22 @@ To reset to previous HEAD:
     const tags = await target.run(['tag']);
     expect(tags).toContain('1.0.0');
   });
+
+  test('cant sync when repo has conflict branches', async () => {
+    const source = await createRepo();
+
+    const target = await createRepo();
+    await target.commitFile('test.txt');
+    await target.run(['checkout', '-b', 'master-gitsync-conflict']);
+    await target.run(['checkout', '-b', 'feature/branch-gitsync-conflict']);
+
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+
+    expect(error).toEqual(new Error(`Repository "${target.dir}" has unmerged conflict branches "feature/branch-gitsync-conflict, master-gitsync-conflict", please merge or remove branches before syncing.`));
+  });
 });

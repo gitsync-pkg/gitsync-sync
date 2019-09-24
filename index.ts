@@ -973,8 +973,21 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async parseBranches(repo: Git) {
-    const repoBranches = await this.getBranches(repo);
-    return this.filter(repoBranches, this.argv.includeBranches, this.argv.excludeBranches);
+    const branches = await this.getBranches(repo);
+
+    const conflicts = [];
+    const pattern = this.getConflictBranchName('');
+    for (const branch of branches) {
+      if (branch.endsWith(pattern)) {
+        conflicts.push(branch);
+      }
+    }
+
+    if (conflicts.length) {
+      throw new Error(`Repository "${repo.dir}" has unmerged conflict branches "${conflicts.join(', ')}", please merge or remove branches before syncing.`);
+    }
+
+    return this.filter(branches, this.argv.includeBranches, this.argv.excludeBranches);
   }
 
   protected toArray(item: any) {
