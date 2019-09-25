@@ -692,40 +692,41 @@ Please follow the steps to resolve the conflicts:
     // @see SyncCommandTest::testSearchCommitMessageContainsLineBreak
     const log = await this.source.run([
       'log',
-      '--format=%ct %B',
+      '--format=%ct %at %B',
       '-1',
       hash,
     ]);
 
-    let [date, message] = this.split(log, ' ');
+    let [committerDate, authorDate, message] = this.explode(' ', log, 3);
     if (message.includes("\n")) {
       message = this.split(message, "\n")[0];
     }
 
     // Here we assume that a person will not commit the same message in the same second.
     // This is the core logic to sync commits between two repositories.
-    //
-    // Target repository may not have any commits, so we mute the error.
     let target = await this.target.run([
       'log',
-      '--after=' + date,
-      '--before=' + date,
+      '--after=' + committerDate,
+      '--before=' + committerDate,
       '--grep',
       message,
       '--fixed-strings',
       '--format=%H',
-      '--all', // TODO search in $toBranches
+      '--all',
     ], {
+      // Target repository may not have any commits, so we mute the error.
       mute: true,
     });
 
     if (!target) {
-      // Git log assumes that commits are sorted by date descend,
-      // and stops searching when the commit date is less than the specified date (--after option).
+      // Case 1: committer date may be changed by rebase.
+      //
+      // Case 2: git log assumes that commits are sorted by date descend,
+      // and stops searching when the committer date is less than the specified date (--after option).
       // If commits are not sorted by date descend (for example, merge or rebase causes the date order changed),
       // the commit may not be found.
+      //
       // So we need to remove the date limit and search again.
-      // This is still reproduced in git version 2.22.0 (2019-06-08).
       const logs = await this.target.run([
         'log',
         '--grep',
@@ -738,8 +739,8 @@ Please follow the steps to resolve the conflicts:
       });
       const hashes: string[] = [];
       logs.split('\n').forEach((log) => {
-        const [hash, logDate] = log.split(' ');
-        if (logDate === date) {
+        const [hash, date] = log.split(' ');
+        if (date === authorDate) {
           hashes.push(hash);
         }
       });
@@ -747,7 +748,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     if (target.includes("\n")) {
-      throw new Error(`Expected to return one commit, but returned more than one commit with the same message in the same second, commit date: ${date}, message: ${message}: hashes: ${target}`);
+      throw new Error(`Expected to return one commit, but returned more than one commit with the same message in the same second, committer date: ${committerDate}, message: ${message}: hashes: ${target}`);
     }
 
     this.targetHashes[hash] = target;
@@ -822,6 +823,8 @@ Please follow the steps to resolve the conflicts:
     let args = [
       'log',
       '--graph',
+      // Use author timestamp instead of committer timestamp,
+      // since that committer timestamp will be changed on rebase by default
       '--format=#%H %P-%at %s',
     ];
 
