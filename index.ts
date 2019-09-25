@@ -68,6 +68,7 @@ class Sync {
   private workTree: Git;
   private conflictBranch: string;
   private config: Config;
+  private env: StringStringMap;
 
   async sync(argv: SyncArguments) {
     this.config = new Config;
@@ -78,6 +79,13 @@ class Sync {
 
     this.sourceDir = this.argv.sourceDir;
     this.targetDir = this.argv.targetDir;
+
+    // Use to skip `gitsync post-commit` command when running `gitsync update`
+    if (process.env.GITSYNC_UPDATE) {
+      this.env = {
+        GITSYNC_UPDATE: process.env.GITSYNC_UPDATE
+      }
+    }
 
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
     try {
@@ -796,14 +804,14 @@ Please follow the steps to resolve the conflicts:
         '-am',
         parts[6],
       ], {
-        env: this.argv.preserveCommit ? {
+        env: Object.assign(this.argv.preserveCommit ? {
           GIT_AUTHOR_NAME: parts[0],
           GIT_AUTHOR_EMAIL: parts[1],
           GIT_AUTHOR_DATE: parts[2],
           GIT_COMMITTER_NAME: parts[3],
           GIT_COMMITTER_EMAIL: parts[4],
-          GIT_COMMITTER_DATE: parts[5],
-        } : {}
+          GIT_COMMITTER_DATE: parts[5]
+        } : {}, this.env)
       }
     );
   }
