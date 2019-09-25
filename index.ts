@@ -535,7 +535,10 @@ Please follow the steps to resolve the conflicts:
     // Delete first and then update, so that when the change is renamed,
     // ensure that the file will not be deleted.
     removeFiles.forEach((file) => {
-      unlink(targetFullDir + '/' + file.substr(removeLength));
+      const targetFile = targetFullDir + '/' + file.substr(removeLength);
+      if (fs.existsSync(targetFile)) {
+        unlink(targetFile);
+      }
     });
 
     let targetFiles = [];
