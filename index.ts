@@ -9,7 +9,6 @@ import * as path from 'path';
 import * as util from 'util';
 import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
-import {promises as fsp} from 'fs';
 import * as micromatch from 'micromatch';
 
 const unlink = util.promisify(fs.unlink);
@@ -1120,10 +1119,6 @@ Please follow the steps to resolve the conflicts:
     return branch;
   }
 
-  protected diff(arr1: any[], arr2: any[]) {
-    return arr1.filter(x => !arr2.includes(x));
-  }
-
   protected objectValueDiff(obj1: any, obj2: any): {} {
     let result: any = {};
     for (let key in obj1) {
@@ -1142,10 +1137,6 @@ Please follow the steps to resolve the conflicts:
       }
     }
     return result;
-  }
-
-  protected intersect(arr1: string[], arr2: string[]) {
-    return arr1.filter(x => arr2.includes(x));
   }
 
   protected getFirstKey(obj: {}): string {
@@ -1223,14 +1214,6 @@ Please follow the steps to resolve the conflicts:
   private tickProgressBar(progressBar: ProgressBar) {
     if (npmlog.levels[npmlog.level] <= npmlog.levels.info) {
       progressBar.tick();
-    }
-  }
-
-  protected async isDir(dir: string) {
-    try {
-      return (await fsp.stat(dir)).isDirectory();
-    } catch (e) {
-      return false;
     }
   }
 }
