@@ -185,7 +185,6 @@ To reset to previous HEAD:
       await this.applyPatch(hashes[key]);
       progressBar.tick();
     }
-    progressBar.terminate();
 
     log.info(
       'Synced %s %s.',
@@ -333,7 +332,6 @@ Please follow the steps to resolve the conflicts:
       progressBar.tick();
     }
 
-    progressBar.terminate();
     log.info(
       'Synced %s, skipped %s branches.',
       theme.info((_.size(sourceBranches) - skipped).toString()),
@@ -722,7 +720,6 @@ Please follow the steps to resolve the conflicts:
       progressBar.tick();
     }
 
-    progressBar.terminate();
     log.info(
       'Synced %s, skipped %s tags.',
       theme.info((filteredCount - skipped).toString()),
