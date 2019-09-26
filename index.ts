@@ -183,7 +183,7 @@ To reset to previous HEAD:
     const hashes = _.reverse(Object.keys(newLogs));
     for (let key in hashes) {
       await this.applyPatch(hashes[key]);
-      progressBar.tick();
+      this.tickProgressBar(progressBar)
     }
 
     log.info(
@@ -283,7 +283,7 @@ Please follow the steps to resolve the conflicts:
         if (!result) {
           skipped++;
         }
-        progressBar.tick();
+        this.tickProgressBar(progressBar)
         continue;
       }
 
@@ -292,14 +292,14 @@ Please follow the steps to resolve the conflicts:
       if (!targetHash) {
         skipped++;
         await this.logCommitNotFound(sourceHash, sourceBranch);
-        progressBar.tick();
+        this.tickProgressBar(progressBar)
         continue;
       }
 
       const targetBranchHash = await this.target.run(['rev-parse', localBranch]);
       if (targetBranchHash === targetHash) {
         log.debug(`Branch "${localBranch}" is up to date, skipping`);
-        progressBar.tick();
+        this.tickProgressBar(progressBar)
         continue;
       }
 
@@ -317,19 +317,19 @@ Please follow the steps to resolve the conflicts:
         }
       } else if (result === targetHash) {
         // 目标分支有新的提交，不用处理
-        progressBar.tick();
+        this.tickProgressBar(progressBar)
         continue;
       } else {
         // or this.conflictBranches.includes(localBranch)
         if (localBranch === this.currentBranch) {
-          progressBar.tick();
+          this.tickProgressBar(progressBar)
           continue;
         }
 
         await this.target.run(['branch', '-f', this.getConflictBranchName(localBranch), targetHash]);
         this.conflictBranches.push(localBranch);
       }
-      progressBar.tick();
+      this.tickProgressBar(progressBar)
     }
 
     log.info(
@@ -697,7 +697,7 @@ Please follow the steps to resolve the conflicts:
 
         log.warn(`Commit not found in target repository, tag: ${name}, date: ${date}, subject: ${message}`)
         skipped++;
-        progressBar.tick();
+        this.tickProgressBar(progressBar)
         continue;
       }
 
@@ -717,7 +717,7 @@ Please follow the steps to resolve the conflicts:
         ]));
       }
       await this.target.run(args);
-      progressBar.tick();
+      this.tickProgressBar(progressBar)
     }
 
     log.info(
@@ -1218,6 +1218,12 @@ Please follow the steps to resolve the conflicts:
       total: total,
       width: 50,
     });
+  }
+
+  private tickProgressBar(progressBar: ProgressBar) {
+    if (npmlog.levels[npmlog.level] <= npmlog.levels.info) {
+      progressBar.tick();
+    }
   }
 
   protected async isDir(dir: string) {
