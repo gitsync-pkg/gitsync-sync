@@ -15,7 +15,7 @@ const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
 const rename = util.promisify(fs.rename);
 
-export interface SyncArguments extends Arguments {
+export interface SyncOptions {
   target: string
   sourceDir: string
   targetDir?: string
@@ -23,9 +23,14 @@ export interface SyncArguments extends Arguments {
   excludeBranches?: string | string[],
   includeTags?: string | string[],
   excludeTags?: string | string[],
-  after?: string,
+  noTags?: boolean,
+  after?: number | string,
   maxCount?: number,
   preserveCommit?: boolean,
+}
+
+export interface SyncArguments extends Arguments<SyncOptions> {
+
 }
 
 export interface Tag {
@@ -42,18 +47,15 @@ export interface StringStringMap {
 }
 
 class Sync {
-  private initHash: string;
-  private source: Git;
-  private target: Git;
-  private argv: SyncArguments = {
-    // TODO
-    $0: '',
-    _: [],
+  private options: SyncOptions = {
     target: '.',
     sourceDir: '',
     targetDir: '.',
     preserveCommit: true,
   };
+  private initHash: string;
+  private source: Git;
+  private target: Git;
   private sourceDir: string;
   private targetDir: string;
   private currentBranch: string;
@@ -70,19 +72,19 @@ class Sync {
   private config: Config;
   private env: StringStringMap;
 
-  async sync(argv: SyncArguments) {
+  async sync(options: SyncOptions) {
     this.config = new Config;
 
-    Object.assign(this.argv, argv);
+    Object.assign(this.options, options);
     this.source = git('.');
 
-    this.target = git(await this.config.getRepoDirByRepo(this.argv, true));
+    this.target = git(await this.config.getRepoDirByRepo(this.options, true));
     if (await this.target.run(['status', '--short'])) {
       throw new Error(`Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`);
     }
 
-    this.sourceDir = this.argv.sourceDir;
-    this.targetDir = this.argv.targetDir;
+    this.sourceDir = this.options.sourceDir;
+    this.targetDir = this.options.targetDir;
 
     // Use to skip `gitsync post-commit` command when running `gitsync update`
     if (process.env.GITSYNC_UPDATE) {
@@ -99,7 +101,7 @@ class Sync {
         throw new Error('conflict');
       }
 
-      if (!argv.noTags) {
+      if (!options.noTags) {
         await this.syncTags();
       }
 
@@ -667,7 +669,7 @@ Please follow the steps to resolve the conflicts:
     const targetTags = await this.getTags(this.target);
 
     const newTags: Tags = this.keyDiff(sourceTags, targetTags);
-    const filterTags: Tags = this.filterObjectKey(newTags, this.argv.includeTags, this.argv.excludeTags);
+    const filterTags: Tags = this.filterObjectKey(newTags, this.options.includeTags, this.options.excludeTags);
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
@@ -888,7 +890,7 @@ Please follow the steps to resolve the conflicts:
         '-am',
         parts[6],
       ], {
-        env: Object.assign(this.argv.preserveCommit ? {
+        env: Object.assign(this.options.preserveCommit ? {
           GIT_AUTHOR_NAME: parts[0],
           GIT_AUTHOR_EMAIL: parts[1],
           GIT_AUTHOR_DATE: parts[2],
@@ -926,15 +928,15 @@ Please follow the steps to resolve the conflicts:
       '--simplify-merges',
     ];
 
-    if (this.argv.after) {
+    if (this.options.after) {
       args = args.concat([
         '--after',
-        this.argv.after
+        this.options.after.toString()
       ]);
     }
 
-    if (this.argv.maxCount) {
-      args.push('-' + this.argv.maxCount);
+    if (this.options.maxCount) {
+      args.push('-' + this.options.maxCount);
     }
 
     if (branches.length) {
@@ -983,7 +985,7 @@ Please follow the steps to resolve the conflicts:
       throw new Error(`Repository "${repo.dir}" has unmerged conflict branches "${conflicts.join(', ')}", please merge or remove branches before syncing.`);
     }
 
-    return this.filter(branches, this.argv.includeBranches, this.argv.excludeBranches);
+    return this.filter(branches, this.options.includeBranches, this.options.excludeBranches);
   }
 
   protected toArray(item: any) {

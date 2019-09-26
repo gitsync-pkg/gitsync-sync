@@ -11,19 +11,15 @@ import {
   catchError,
   clearMessage
 } from '@gitsync/test';
-import Sync from "../index";
+import Sync, {SyncOptions} from "..";
 import git, {Git} from "git-cli-wrapper";
 import {Config} from "@gitsync/config";
 import log from '@gitsync/log';
 
-const sync = async (source: Git, options: any, instance: Sync = null) => {
+const sync = async (source: Git, options: SyncOptions, instance: Sync = null) => {
   changeDir(source);
   const sync = instance || new Sync();
-  await sync.sync(Object.assign({
-    // TODO
-    $0: '',
-    _: [],
-  }, options));
+  await sync.sync(options);
   resetDir();
 };
 
