@@ -8,14 +8,12 @@ import {
   resetDir,
   catchError,
   clearMessage,
-  RepoManager
+  createRepo
 } from '@gitsync/test';
 import Sync, {SyncOptions} from "..";
 import git, {Git} from "git-cli-wrapper";
 import {Config} from "@gitsync/config";
 import log from '@gitsync/log';
-
-const {createRepo, removeRepos} = new RepoManager();
 
 const sync = async (source: Git, options: SyncOptions, instance: Sync = null) => {
   changeDir(source);
@@ -25,10 +23,6 @@ const sync = async (source: Git, options: SyncOptions, instance: Sync = null) =>
 };
 
 describe('sync command', () => {
-  afterAll(async () => {
-    await removeRepos();
-  });
-
   afterEach(() => {
     clearMessage();
   })
