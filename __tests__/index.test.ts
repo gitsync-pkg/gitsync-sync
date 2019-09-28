@@ -3,18 +3,19 @@ import * as npmlog from 'npmlog';
 import * as path from 'path';
 import * as util from 'util';
 import {
-  createRepo,
-  removeRepos,
   logMessage,
   changeDir,
   resetDir,
   catchError,
-  clearMessage
+  clearMessage,
+  RepoManager
 } from '@gitsync/test';
 import Sync, {SyncOptions} from "..";
 import git, {Git} from "git-cli-wrapper";
 import {Config} from "@gitsync/config";
 import log from '@gitsync/log';
+
+const {createRepo, removeRepos} = new RepoManager();
 
 const sync = async (source: Git, options: SyncOptions, instance: Sync = null) => {
   changeDir(source);
@@ -23,15 +24,15 @@ const sync = async (source: Git, options: SyncOptions, instance: Sync = null) =>
   resetDir();
 };
 
-afterAll(() => {
-  removeRepos();
-});
-
-afterEach(() => {
-  clearMessage();
-})
-
 describe('sync command', () => {
+  afterAll(async () => {
+    await removeRepos();
+  });
+
+  afterEach(() => {
+    clearMessage();
+  })
+
   test('sync commits', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
