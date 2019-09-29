@@ -18,6 +18,7 @@ import log from '@gitsync/log';
 const sync = async (source: Git, options: SyncOptions, instance: Sync = null) => {
   changeDir(source);
   const sync = instance || new Sync();
+  options.yes = true;
   await sync.sync(options);
   resetDir();
 };

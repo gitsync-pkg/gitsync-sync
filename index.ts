@@ -10,6 +10,7 @@ import * as util from 'util';
 import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
 import * as micromatch from 'micromatch';
+import * as inquirer from 'inquirer';
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -27,6 +28,7 @@ export interface SyncOptions {
   after?: number | string,
   maxCount?: number,
   preserveCommit?: boolean,
+  yes?: boolean,
 }
 
 export interface SyncArguments extends Arguments<SyncOptions> {
@@ -95,16 +97,7 @@ class Sync {
 
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
     try {
-      const result = await this.syncCommits();
-      if (!result) {
-        // TODO
-        throw new Error('conflict');
-      }
-
-      if (!options.noTags) {
-        await this.syncTags();
-      }
-
+      await this.syncCommits();
       await this.clean();
       log.info('Sync finished.');
     } catch (e) {
@@ -180,6 +173,23 @@ To reset to previous HEAD:
     this.isContains = sourceCount - targetCount === newCount;
     log.debug(`source repository ${this.isContains ? 'contains' : 'does not contain'} target repostitory`);
 
+    let filteredTags;
+    if (!this.options.noTags) {
+      filteredTags = await this.getFilteredTags();
+    }
+
+    if (!this.options.yes) {
+      const {toSync} = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'toSync',
+        message: 'Are you sure to sync?',
+        default: false
+      }]);
+      if (!toSync) {
+        return;
+      }
+    }
+
     const progressBar = this.createProgressBar(newCount);
     const hashes = _.reverse(Object.keys(newLogs));
     for (let key in hashes) {
@@ -203,18 +213,15 @@ To reset to previous HEAD:
       }
     }
 
-    if (!this.conflictBranches.length) {
-      return true;
-    }
+    if (this.conflictBranches.length) {
+      // TODO 1. normalize dir 2. generate "gitsync ..." command
+      let branchTips = '';
+      this.conflictBranches.forEach((branch: string) => {
+        branchTips += '    ' + theme.info(branch) + ' conflict with ' + theme.info(this.getConflictBranchName(branch)) + "\n";
+      });
 
-    // TODO 1. normalize dir 2. generate "gitsync ..." command
-    let branchTips = '';
-    this.conflictBranches.forEach((branch: string) => {
-      branchTips += '    ' + theme.info(branch) + ' conflict with ' + theme.info(this.getConflictBranchName(branch)) + "\n";
-    });
-
-    const branchCount = _.size(this.conflictBranches);
-    log.warn(`
+      const branchCount = _.size(this.conflictBranches);
+      log.warn(`
 The target repository contains conflict ${this.pluralize('branch', branchCount, 'es')}, which need to be resolved manually.
 
 The conflict ${this.pluralize('branch', branchCount, 'es')}:
@@ -229,8 +236,32 @@ Please follow the steps to resolve the conflicts:
     5. git branch -d ${this.getConflictBranchName('BRANCH-NAME')} // Remove temp branch
     6. "gitsync ..." to sync changes back to current repository
 `);
+      throw new Error('conflict');
+    }
 
-    return !this.conflictBranches.length;
+    if (!this.options.noTags) {
+      await this.syncTags(filteredTags);
+    }
+  }
+
+  private async getFilteredTags() {
+    const sourceTags = await this.getTags(this.source);
+    const targetTags = await this.getTags(this.target);
+
+    const newTags: Tags = this.keyDiff(sourceTags, targetTags);
+    const filterTags: Tags = this.filterObjectKey(newTags, this.options.includeTags, this.options.excludeTags);
+
+    const total = _.size(sourceTags);
+    const newCount = _.size(newTags);
+    const filteredCount = _.size(filterTags);
+    log.info(
+      'Tags: new: %s, exists: %s, source: %s, target: %s',
+      theme.info(filteredCount.toString()),
+      theme.info((total - newCount).toString()),
+      theme.info(total.toString()),
+      theme.info(_.size(targetTags).toString())
+    );
+    return filterTags;
   }
 
   private async filterEmptyLogs(logs: StringStringMap) {
@@ -664,26 +695,11 @@ Please follow the steps to resolve the conflicts:
     return this.workTree;
   }
 
-  protected async syncTags() {
-    const sourceTags = await this.getTags(this.source);
-    const targetTags = await this.getTags(this.target);
-
-    const newTags: Tags = this.keyDiff(sourceTags, targetTags);
-    const filterTags: Tags = this.filterObjectKey(newTags, this.options.includeTags, this.options.excludeTags);
-
-    const total = _.size(sourceTags);
-    const newCount = _.size(newTags);
+  protected async syncTags(filterTags: Record<string, Tag>) {
     const filteredCount = _.size(filterTags);
-    log.info(
-      'Tags: new: %s, exists: %s, source: %s, target: %s',
-      theme.info(filteredCount.toString()),
-      theme.info((total - newCount).toString()),
-      theme.info(total.toString()),
-      theme.info(_.size(targetTags).toString())
-    );
 
     let skipped = 0;
-    const progressBar = this.createProgressBar(newCount);
+    const progressBar = this.createProgressBar(filteredCount);
     for (let name in filterTags) {
       let tag: Tag = filterTags[name];
       const targetHash = await this.findTargetTagHash(tag.hash);
