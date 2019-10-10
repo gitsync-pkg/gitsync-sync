@@ -29,6 +29,8 @@ export interface SyncOptions {
   maxCount?: number,
   preserveCommit?: boolean,
   yes?: boolean,
+  addTagPrefix?: string,
+  removeTagPrefix?: string,
 }
 
 export interface SyncArguments extends Arguments<SyncOptions> {
@@ -54,6 +56,8 @@ class Sync {
     sourceDir: '',
     targetDir: '.',
     preserveCommit: true,
+    addTagPrefix: '',
+    removeTagPrefix: '',
   };
   private initHash: string;
   private source: Git;
@@ -249,7 +253,15 @@ Please follow the steps to resolve the conflicts:
     const targetTags = await this.getTags(this.target);
 
     const newTags: Tags = this.keyDiff(sourceTags, targetTags);
-    const filterTags: Tags = this.filterObjectKey(newTags, this.options.includeTags, this.options.excludeTags);
+
+    let include = this.options.includeTags;
+    if (this.options.removeTagPrefix) {
+      include = this.toArray(include);
+      include.push(this.options.removeTagPrefix + '*');
+    }
+
+    const tags: Tags = this.filterObjectKey(newTags, include, this.options.excludeTags);
+    const filterTags: Tags = this.transformTagKey(tags, this.options.removeTagPrefix, this.options.addTagPrefix);
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
@@ -262,6 +274,20 @@ Please follow the steps to resolve the conflicts:
       theme.info(_.size(targetTags).toString())
     );
     return filterTags;
+  }
+
+  private transformTagKey(tags: Tags, removeTagPrefix: string, addTagPrefix : string) {
+    if (!removeTagPrefix && !addTagPrefix) {
+      return tags;
+    }
+
+    let newTags: Tags = {};
+    Object.keys(tags).forEach((tag: string) => {
+      const newTag = addTagPrefix + tag.substring(removeTagPrefix.length);
+      newTags[newTag] = tags[tag];
+    });
+
+    return newTags;
   }
 
   private async filterEmptyLogs(logs: StringStringMap) {

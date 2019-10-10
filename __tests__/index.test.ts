@@ -177,6 +177,74 @@ describe('sync command', () => {
     expect(tags).not.toContain('@test/api@0.1.0');
   });
 
+  test('removeTagPrefix option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await Promise.all([
+      source.run(['tag', '@test/test@0.1.0']),
+      source.run(['tag', '@test/test@0.2.0']),
+      source.run(['tag', '@test/api@0.1.1']),
+    ]);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      removeTagPrefix: '@test/test@',
+    });
+
+    const tags = await target.run(['tag']);
+    expect(tags).toContain('0.1.0');
+    expect(tags).toContain('0.2.0');
+    expect(tags).not.toContain('@test/api@0.1.1');
+  });
+
+  test('addTagPrefix option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await Promise.all([
+      source.run(['tag', '0.1.0']),
+      source.run(['tag', '0.2.0']),
+    ]);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      addTagPrefix: 'v',
+    });
+
+    const tags = await target.run(['tag']);
+    expect(tags).toContain('v0.1.0');
+    expect(tags).toContain('v0.2.0');
+  });
+
+  test('removeTagPrefix and addTagPrefix option', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await Promise.all([
+      source.run(['tag', '@test/test@0.1.0']),
+      source.run(['tag', '@test/test@0.2.0']),
+      source.run(['tag', '@test/api@0.3.0']),
+    ]);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      addTagPrefix: 'v',
+      removeTagPrefix: '@test/test@'
+    });
+
+    const tags = await target.run(['tag']);
+    expect(tags).toContain('v0.1.0');
+    expect(tags).toContain('v0.2.0');
+    expect(tags).not.toContain('0.3.0');
+  });
+
   test('sync tag not found', async () => {
     const source = await createRepo();
     await source.commitFile('text.txt');
