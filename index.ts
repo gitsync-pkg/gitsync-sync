@@ -135,20 +135,6 @@ To reset to previous HEAD:
     const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourceDir);
     const targetLogs = await this.getLogs(this.target, targetBranches, this.targetDir);
 
-    const branch = await this.getBranchFromLog(sourceLogs);
-    this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
-
-    const targetBranch = await this.target.getBranch();
-    this.origBranch = targetBranch;
-
-    if (this.currentBranch && targetBranch !== this.defaultBranch) {
-      if (!targetBranches.includes(this.defaultBranch)) {
-        await this.target.run(['checkout', '-b', this.defaultBranch]);
-      } else {
-        await this.target.run(['checkout', this.defaultBranch]);
-      }
-    }
-
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
     const newLogs = await this.filterEmptyLogs(newLogsDiff);
@@ -191,6 +177,20 @@ To reset to previous HEAD:
       }]);
       if (!toSync) {
         return;
+      }
+    }
+
+    const branch = await this.getBranchFromLog(sourceLogs);
+    this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
+
+    const targetBranch = await this.target.getBranch();
+    this.origBranch = targetBranch;
+
+    if (this.currentBranch && targetBranch !== this.defaultBranch) {
+      if (!targetBranches.includes(this.defaultBranch)) {
+        await this.target.run(['checkout', '-b', this.defaultBranch]);
+      } else {
+        await this.target.run(['checkout', this.defaultBranch]);
       }
     }
 
