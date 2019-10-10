@@ -260,8 +260,10 @@ Please follow the steps to resolve the conflicts:
       include.push(this.options.removeTagPrefix + '*');
     }
 
-    const tags: Tags = this.filterObjectKey(newTags, include, this.options.excludeTags);
-    const filterTags: Tags = this.transformTagKey(tags, this.options.removeTagPrefix, this.options.addTagPrefix);
+    let filterTags: Tags = this.filterObjectKey(newTags, include, this.options.excludeTags);
+    filterTags = this.transformTagKey(filterTags, this.options.removeTagPrefix, this.options.addTagPrefix);
+    // Tags may exist after transformed
+    filterTags = this.keyDiff(filterTags, targetTags);
 
     const total = _.size(sourceTags);
     const newCount = _.size(newTags);
