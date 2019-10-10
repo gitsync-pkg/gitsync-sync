@@ -121,6 +121,10 @@ class Sync {
       this.sourcePaths.push(pathPrefix + this.options.sourceDir + pathSuffix);
       this.targetPaths.push(pathPrefix + this.options.targetDir + pathSuffix);
     });
+    if (!this.options.filter.length) {
+      this.sourcePaths.push(this.options.sourceDir);
+      this.targetPaths.push(this.options.targetDir);
+    }
 
     // Use to skip `gitsync post-commit` command when running `gitsync update`
     if (process.env.GITSYNC_UPDATE) {
