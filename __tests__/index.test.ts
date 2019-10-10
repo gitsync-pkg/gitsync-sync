@@ -1605,4 +1605,78 @@ To reset to previous HEAD:
 
     expect(error).toEqual(new Error(`Repository "${target.dir}" has unmerged conflict branches "feature/branch-gitsync-conflict, master-gitsync-conflict", please merge or remove branches before syncing.`));
   });
+
+  test('filter to ignore one file', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('ignore.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: [':^ignore.txt']
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('ignore.txt'))).toBeFalsy();
+  });
+
+  test('filter to ignore multi files', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('ignore.txt');
+    await source.commitFile('dir/ignore.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: [
+        ':^ignore.txt',
+        ':^dir/*.txt'
+      ]
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('ignore.txt'))).toBeFalsy();
+    expect(fs.existsSync(target.getFile('dir/ignore.txt'))).toBeFalsy();
+  });
+
+  test('filter to sync multi directories', async () => {
+    const source = await createRepo();
+    await source.commitFile('dir1/test.txt');
+    await source.commitFile('dir2/test.txt');
+    await source.commitFile('dir3/test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: [
+        'dir1/',
+        'dir2/'
+      ]
+    });
+
+    expect(fs.existsSync(target.getFile('dir1/test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('dir2/test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('dir3/test.txt'))).toBeFalsy();
+  });
+
+  test('filter to sync one file', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('sync.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: ['sync.txt']
+    });
+
+    expect(fs.existsSync(target.getFile('sync.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeFalsy();
+  });
 });

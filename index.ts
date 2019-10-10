@@ -31,6 +31,7 @@ export interface SyncOptions {
   yes?: boolean,
   addTagPrefix?: string,
   removeTagPrefix?: string,
+  filter?: string[],
 }
 
 export interface SyncArguments extends Arguments<SyncOptions> {
@@ -77,11 +78,13 @@ class Sync {
   private conflictBranch: string;
   private config: Config;
   private env: StringStringMap;
+  private sourcePaths: string[] = [];
+  private targetPaths: string[] = [];
 
   async sync(options: SyncOptions) {
     this.config = new Config;
+    this.prepareOptions(options);
 
-    Object.assign(this.options, options);
     this.source = git('.');
 
     this.target = git(await this.config.getRepoDirByRepo(this.options, true));
@@ -91,6 +94,33 @@ class Sync {
 
     this.sourceDir = this.options.sourceDir;
     this.targetDir = this.options.targetDir;
+
+    // TODO move to prepareOptions
+    this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
+    this.options.targetDir = path.normalize(this.options.targetDir + '/');
+
+    // @link https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec
+    const regex = /^:(!|\^|\/|\([a-z,]+\))(.+?)$/;
+    this.options.filter.forEach(pathSpec => {
+      let pathPrefix = '';
+      let pathSuffix = '';
+
+      if (pathSpec.substr(0, 1) === ':') {
+        const matches = regex.exec(pathSpec);
+        if (matches) {
+          pathPrefix = ':' + matches[1];
+          pathSuffix = matches[2];
+        }
+      }
+
+      // Fallback to normal path
+      if (!pathSuffix) {
+        pathSuffix = pathSpec;
+      }
+
+      this.sourcePaths.push(pathPrefix + this.options.sourceDir + pathSuffix);
+      this.targetPaths.push(pathPrefix + this.options.targetDir + pathSuffix);
+    });
 
     // Use to skip `gitsync post-commit` command when running `gitsync update`
     if (process.env.GITSYNC_UPDATE) {
@@ -128,12 +158,17 @@ To reset to previous HEAD:
     }
   }
 
+  private prepareOptions(options: SyncOptions) {
+    Object.assign(this.options, options);
+    this.options.filter = this.toArray(this.options.filter);
+  }
+
   protected async syncCommits() {
     const sourceBranches = await this.parseBranches(this.source);
     const targetBranches = await this.parseBranches(this.target);
 
-    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourceDir);
-    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetDir);
+    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths);
+    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths);
 
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
@@ -278,7 +313,7 @@ Please follow the steps to resolve the conflicts:
     return filterTags;
   }
 
-  private transformTagKey(tags: Tags, removeTagPrefix: string, addTagPrefix : string) {
+  private transformTagKey(tags: Tags, removeTagPrefix: string, addTagPrefix: string) {
     if (!removeTagPrefix && !addTagPrefix) {
       return tags;
     }
@@ -433,8 +468,7 @@ Please follow the steps to resolve the conflicts:
       '-1',
       sourceHash,
       '--',
-      this.sourceDir,
-    ]);
+    ].concat(this.sourcePaths));
     if (!sourceDirHash) {
       return false;
     }
@@ -506,8 +540,7 @@ Please follow the steps to resolve the conflicts:
       '--format=%n',
       hash,
       '--',
-      this.sourceDir,
-    ];
+    ].concat(this.sourcePaths);
 
     let patch = await this.source.run(args);
 
@@ -579,8 +612,7 @@ Please follow the steps to resolve the conflicts:
         '--skip=1',
         hash,
         '--',
-        this.sourceDir,
-      ]);
+      ].concat(this.sourcePaths));
 
       let targetHash;
       if (log) {
@@ -628,8 +660,7 @@ Please follow the steps to resolve the conflicts:
         parents[i],
         hash,
         '--',
-        this.sourceDir,
-      ]);
+      ].concat(this.sourcePaths));
       if (result) {
         results.push(result);
       }
@@ -954,7 +985,7 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, branches: string[], dir: string): Promise<StringStringMap> {
+  protected async getLogs(repo: Git, branches: string[], paths: string[]): Promise<StringStringMap> {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
     if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
@@ -990,11 +1021,8 @@ Please follow the steps to resolve the conflicts:
     }
 
     // Do not specify root directory, so that logs will contain *empty* commits (include merges)
-    if (dir && dir != '.') {
-      args = args.concat([
-        '--',
-        dir
-      ]);
+    if (paths.join() !== './') {
+      args = args.concat(['--'].concat(paths));
     }
 
     let log = await repo.run(args);
