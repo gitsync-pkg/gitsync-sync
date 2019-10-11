@@ -895,13 +895,15 @@ Please follow the steps to resolve the conflicts:
       mute: true,
     });
 
-    if (!target) {
+    if (!target || target.includes("\n")) {
       // Case 1: committer date may be changed by rebase.
       //
       // Case 2: git log assumes that commits are sorted by date descend,
       // and stops searching when the committer date is less than the specified date (--after option).
       // If commits are not sorted by date descend (for example, merge or rebase causes the date order changed),
       // the commit may not be found.
+      //
+      // Case 3: rebase causes same commit subject have same commit time, so target will contains `\n`
       //
       // So we need to remove the date limit and search again.
       const logs = await this.target.run([

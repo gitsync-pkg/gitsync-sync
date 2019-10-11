@@ -1606,6 +1606,32 @@ To reset to previous HEAD:
     expect(error).toEqual(new Error(`Repository "${target.dir}" has unmerged conflict branches "feature/branch-gitsync-conflict, master-gitsync-conflict", please merge or remove branches before syncing.`));
   });
 
+  test('rebase causes same commit subject have same commit time', async () => {
+    const source = await createRepo();
+
+    const now = new Date().getTime() / 1000;
+    await source.addFile('test.txt');
+    await source.run(['commit', '-am', 'add something'], {env: {GIT_AUTHOR_DATE: now - 1}});
+    await source.addFile('test2.txt');
+    await source.run(['commit', '-am', 'add something'], {env: {GIT_AUTHOR_DATE: now}});
+
+    // Committer date becomes the same
+    await source.run(['rebase', '-f', '--root']);
+
+    // Sync branch will trigger `getTargetHash`
+    await source.run(['checkout', '-b', 'branch']);
+
+    const target = await createRepo();
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+      });
+    });
+
+    expect(error).toBeUndefined();
+  });
+
   test('filter to ignore one file', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
