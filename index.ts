@@ -32,6 +32,7 @@ export interface SyncOptions {
   addTagPrefix?: string,
   removeTagPrefix?: string,
   filter?: string[],
+  squash?: boolean,
 }
 
 export interface SyncArguments extends Arguments<SyncOptions> {
@@ -171,6 +172,7 @@ To reset to previous HEAD:
     const sourceBranches = await this.parseBranches(this.source);
     const targetBranches = await this.parseBranches(this.target);
 
+    // TODO squash expand logs
     const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths);
     const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths);
 
@@ -233,11 +235,16 @@ To reset to previous HEAD:
       }
     }
 
-    const progressBar = this.createProgressBar(newCount);
     const hashes = _.reverse(Object.keys(newLogs));
-    for (let key in hashes) {
-      await this.applyPatch(hashes[key]);
-      this.tickProgressBar(progressBar)
+
+    if (this.options.squash) {
+      await this.createSquashCommits(sourceBranches, targetBranches, hashes);
+    } else {
+      const progressBar = this.createProgressBar(newCount);
+      for (let key in hashes) {
+        await this.applyPatch(hashes[key]);
+        this.tickProgressBar(progressBar)
+      }
     }
 
     log.info(
@@ -285,6 +292,115 @@ Please follow the steps to resolve the conflicts:
     if (!this.options.noTags) {
       await this.syncTags(filteredTags);
     }
+  }
+
+  private async createSquashCommits(sourceBranches: any, targetBranches: any, hashes: string[]) {
+    let skipped = 0;
+    const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
+
+    for (let key in sourceBranches) {
+      let sourceBranch: string = sourceBranches[key];
+      let localBranch = this.toLocalBranch(sourceBranch);
+
+      if (!_.includes(targetBranches, sourceBranch)) {
+        // TODO squash 不存在的分支
+        const result: any = null;
+        if (!result) {
+          skipped++;
+        }
+        this.tickProgressBar(progressBar)
+        continue;
+      }
+
+      const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
+      const targetBranchHash = await this.target.run(['rev-parse', sourceBranch]);
+      const sourceStartHash = await this.getSourceHash(targetBranchHash);
+      const targetHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash);
+
+      if (sourceBranch === this.currentBranch) {
+        if (this.isContains) {
+          // Update target HEAD only if source fully contains target
+          // otherwise, target commits that not in the source will be lost
+          await this.target.run(['reset', '--hard', targetHash]);
+        } else {
+          log.info('Target repository has commits that have not been sync back to source repository, ' +
+            `do not update "${sourceBranch}" branch to avoid lost commits`);
+        }
+      } else {
+        await this.target.run(['branch', '-f', sourceBranch, targetHash]);
+      }
+
+      this.tickProgressBar(progressBar)
+    }
+  }
+
+  private async createSquashCommit(startHash: string, endHash: string) {
+    // Create patch
+    const args = [
+      'log',
+      '-p',
+      '--reverse',
+      '-m',
+      '--stat',
+      '--binary',
+      '--color=never',
+      // Commit body may contains *diff like* codes, which cause git-apply fail
+      // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
+      '--format=%n',
+      startHash + '..' + endHash,
+      '--',
+    ].concat(this.sourcePaths);
+
+    let patch = await this.source.run(args);
+
+    // Add new lines to avoid git-apply return error
+    // s
+    // """
+    // error: corrupt patch at line xxx
+    // error: could not build fake ancestor
+    // """
+    // @see sync src/Symfony/Bridge/Monolog/
+    //
+    // """
+    // error: corrupt binary patch at line xxx:
+    // """
+    // @see sync src/Symfony/Component/Form/
+    patch += "\n\n";
+
+    // Apply patch
+    let patchArgs = [
+      'apply',
+      '-3',
+      // @see \GitSyncTest\Command\SyncCommandTest::testApplySuccessWhenChangedLineEndings
+      '--ignore-whitespace',
+    ];
+
+    if (this.sourceDir && this.sourceDir !== '.') {
+      patchArgs.push('-p' + (this.strCount(this.sourceDir, '/') + 2));
+    }
+
+    if (this.targetDir && this.targetDir !== '.') {
+      patchArgs = patchArgs.concat([
+        '--directory',
+        this.targetDir,
+      ]);
+    }
+
+    try {
+      await this.target.run(patchArgs, {input: patch});
+    } catch (e) {
+      // TODO squash overwrite
+    }
+
+    // Ignore untracked files
+    await this.target.run(['add', '-u']);
+    await this.target.run([
+      'commit',
+      '--allow-empty',
+      '-am',
+      `chore(sync): squash commit from ${startHash} to ${endHash}`
+    ]);
+    return await this.target.run(['rev-parse', 'HEAD']);
   }
 
   private async getFilteredTags() {
@@ -931,6 +1047,84 @@ Please follow the steps to resolve the conflicts:
     }
 
     this.targetHashes[hash] = target;
+    return target;
+  }
+
+  private sourceHashes: StringStringMap = {};
+
+  protected async getSourceHash(hash: string) {
+    if (typeof this.sourceHashes[hash] !== 'undefined') {
+      return this.sourceHashes[hash];
+    }
+
+    // Use the first line of raw body (%B), instead of subject (%s),
+    // because git will convert commit message "a\nb" to "a b" as subject,
+    // so search by "a b" won't match the log.
+    // @see SyncCommandTest::testSearchCommitMessageContainsLineBreak
+    const log = await this.source.run([
+      'log',
+      '--format=%ct %at %B',
+      '-1',
+      hash,
+    ]);
+
+    let [committerDate, authorDate, message] = this.explode(' ', log, 3);
+    if (message.includes("\n")) {
+      message = this.split(message, "\n")[0];
+    }
+
+    // Here we assume that a person will not commit the same message in the same second.
+    // This is the core logic to sync commits between two repositories.
+    let target = await this.source.run([
+      'log',
+      '--after=' + committerDate,
+      '--before=' + committerDate,
+      '--grep',
+      message,
+      '--fixed-strings',
+      '--format=%H',
+      '--all',
+    ], {
+      // Target repository may not have any commits, so we mute the error.
+      mute: true,
+    });
+
+    if (!target || target.includes("\n")) {
+      // Case 1: committer date may be changed by rebase.
+      //
+      // Case 2: git log assumes that commits are sorted by date descend,
+      // and stops searching when the committer date is less than the specified date (--after option).
+      // If commits are not sorted by date descend (for example, merge or rebase causes the date order changed),
+      // the commit may not be found.
+      //
+      // Case 3: rebase causes same commit subject have same commit time, so target will contains `\n`
+      //
+      // So we need to remove the date limit and search again.
+      const logs = await this.source.run([
+        'log',
+        '--grep',
+        message,
+        '--fixed-strings',
+        '--format=%H %at',
+        '--all',
+      ], {
+        mute: true,
+      });
+      const hashes: string[] = [];
+      logs.split('\n').forEach((log) => {
+        const [hash, date] = log.split(' ');
+        if (date === authorDate) {
+          hashes.push(hash);
+        }
+      });
+      target = hashes.join('\n');
+    }
+
+    if (target.includes("\n")) {
+      throw new Error(`Expected to return one commit, but returned more than one commit with the same message in the same second, committer date: ${committerDate}, message: ${message}: hashes: ${target}`);
+    }
+
+    this.sourceHashes[hash] = target;
     return target;
   }
 
