@@ -1706,7 +1706,29 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('test.txt'))).toBeFalsy();
   });
 
-  test('squash option', async () => {
+  test('squash to new repo', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('test2.txt');
+    await source.commitFile('test3.txt');
+    const endHash = await source.run(['rev-parse', 'HEAD']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    expect(fs.existsSync(source.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(source.getFile('test2.txt'))).toBeTruthy();
+    expect(fs.existsSync(source.getFile('test3.txt'))).toBeTruthy();
+
+    const result = await target.run(['log', '--format=%s']);
+    expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+  });
+
+  test('squash to repo contains commit', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     const startHash = await source.run(['rev-parse', 'HEAD']);

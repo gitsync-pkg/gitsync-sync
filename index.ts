@@ -11,6 +11,7 @@ import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
 import * as micromatch from 'micromatch';
 import * as inquirer from 'inquirer';
+import has = Reflect.has;
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -294,6 +295,23 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
+  private parseHash(hash: string) {
+    const fullHash = hash;
+
+    // Switch to target branch
+    let isCurBranch = hash.substr(0, 1) === '*';
+    hash = this.split(hash, '#')[1];
+    let parent: string;
+    [hash, parent] = this.split(hash, ' ');
+
+    // Use Git empty tree hash as first commit's parent
+    if (!parent) {
+      parent = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+    }
+
+    return [hash, parent];
+  }
+
   private async createSquashCommits(sourceBranches: any, targetBranches: any, hashes: string[]) {
     let skipped = 0;
     const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
@@ -301,18 +319,16 @@ Please follow the steps to resolve the conflicts:
     for (let key in sourceBranches) {
       let sourceBranch: string = sourceBranches[key];
       let localBranch = this.toLocalBranch(sourceBranch);
+      const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
 
       if (!_.includes(targetBranches, sourceBranch)) {
-        // TODO squash 不存在的分支
-        const result: any = null;
-        if (!result) {
-          skipped++;
-        }
+        // TODO squash merge has multi parents
+        const [hash, parent] = this.parseHash(hashes[0]);
+        await this.createSquashCommit(parent, sourceBranchHash);
         this.tickProgressBar(progressBar)
         continue;
       }
 
-      const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
       const targetBranchHash = await this.target.run(['rev-parse', sourceBranch]);
       const sourceStartHash = await this.getSourceHash(targetBranchHash);
       const targetHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash);
