@@ -1558,6 +1558,54 @@ To reset to previous HEAD:
     expect(logMessage()).toContain('Commits: new: 0, exists: 1, source: 1, target: 1');
   });
 
+  test('sync branch at empty commit from root directory wont lost empty commit', async () => {
+    const source = await createRepo();
+
+    await source.commitFile('test.txt');
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('test2.txt');
+    await source.run(['checkout', 'master']);
+    await source.run([
+      'merge',
+      '--no-ff',
+      'branch',
+    ]);
+    await source.run(['branch', '-d', 'branch']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    // Commit exists, wont be reset
+    expect(await target.run(['log', '--format=%s', '-1'])).toBe("Merge branch 'branch'");
+  });
+
+  test('sync branch at empty commit from sub directory will lost empty commit', async () => {
+    const source = await createRepo();
+
+    await source.commitFile('package/test.txt');
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('package/test2.txt');
+    await source.run(['checkout', 'master']);
+    await source.run([
+      'merge',
+      '--no-ff',
+      'branch',
+    ]);
+    await source.run(['branch', '-d', 'branch']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: 'package',
+    });
+
+    // Commit not exists, have been be reset
+    expect(await target.run(['log', '--format=%s', '-1'])).toContain("add package/test2.txt");
+  });
+
   test('getTargetHash fallback to search without date', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');

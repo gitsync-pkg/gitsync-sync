@@ -352,7 +352,7 @@ Please follow the steps to resolve the conflicts:
 
   private async createSquashCommit(startHash: string, endHash: string) {
     // Create patch
-    const args = [
+    const args = this.withPaths([
       'log',
       '-p',
       '--reverse',
@@ -364,8 +364,7 @@ Please follow the steps to resolve the conflicts:
       // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
       '--format=%n',
       startHash + '..' + endHash,
-      '--',
-    ].concat(this.sourcePaths);
+    ], this.sourcePaths);
 
     let patch = await this.source.run(args);
 
@@ -598,13 +597,12 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async findTargetTagHash(sourceHash: string) {
-    const sourceDirHash = await this.source.run([
+    const sourceDirHash = await this.source.run(this.withPaths([
       'log',
       '--format=%h',
       '-1',
       sourceHash,
-      '--',
-    ].concat(this.sourcePaths));
+    ], this.sourcePaths));
     if (!sourceDirHash) {
       return false;
     }
@@ -662,7 +660,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     // Create patch
-    const args = [
+    const args = this.withPaths([
       'log',
       '-p',
       '--reverse',
@@ -675,8 +673,7 @@ Please follow the steps to resolve the conflicts:
       // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
       '--format=%n',
       hash,
-      '--',
-    ].concat(this.sourcePaths);
+    ], this.sourcePaths);
 
     let patch = await this.source.run(args);
 
@@ -741,14 +738,13 @@ Please follow the steps to resolve the conflicts:
 
     if (!this.isConflict) {
       // 找到冲突前的记录，从这里开始创建branch
-      const log = await this.source.run([
+      const log = await this.source.run(this.withPaths([
         'log',
         '--format=%ct %B',
         '-1',
         '--skip=1',
         hash,
-        '--',
-      ].concat(this.sourcePaths));
+      ], this.sourcePaths));
 
       let targetHash;
       if (log) {
@@ -789,14 +785,13 @@ Please follow the steps to resolve the conflicts:
   protected async overwrite(hash: string, parents: string[]) {
     let results = [];
     for (let i in parents) {
-      let result = await this.source.run([
+      let result = await this.source.run(this.withPaths([
         'diff-tree',
         '--name-status',
         '-r',
         parents[i],
         hash,
-        '--',
-      ].concat(this.sourcePaths));
+      ], this.sourcePaths));
       if (result) {
         results.push(result);
       }
@@ -1237,9 +1232,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     // Do not specify root directory, so that logs will contain *empty* commits (include merges)
-    if (paths.join() !== './') {
-      args = args.concat(['--'].concat(paths));
-    }
+    args = this.withPaths(args, paths);
 
     let log = await repo.run(args);
     if (!log) {
@@ -1505,6 +1498,14 @@ Please follow the steps to resolve the conflicts:
     if (npmlog.levels[npmlog.level] <= npmlog.levels.info) {
       progressBar.tick();
     }
+  }
+
+  private withPaths(args: string[], paths: string[]) {
+    // Do not specify root directory, so that logs will contain *empty* commits (include merges)
+    if (paths.length === 1 && paths[0] === './') {
+      return args;
+    }
+    return args.concat(['--'].concat(paths));
   }
 }
 
