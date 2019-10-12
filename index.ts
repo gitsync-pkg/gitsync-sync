@@ -330,6 +330,13 @@ Please follow the steps to resolve the conflicts:
 
       const targetBranchHash = await this.target.run(['rev-parse', sourceBranch]);
       const sourceStartHash = await this.getSourceHash(targetBranchHash);
+
+      if (sourceBranchHash === sourceStartHash) {
+        log.debug(`Branch "${localBranch}" is up to date, skipping`);
+        this.tickProgressBar(progressBar)
+        continue;
+      }
+
       const targetHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash);
 
       if (sourceBranch === this.currentBranch) {
