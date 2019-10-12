@@ -322,10 +322,9 @@ Please follow the steps to resolve the conflicts:
       const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
 
       if (!_.includes(targetBranches, sourceBranch)) {
-        // TODO squash merge has multi parents
         const [hash, parent] = this.parseHash(hashes[0]);
         await this.createSquashCommit(parent, sourceBranchHash);
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       }
 
@@ -351,6 +350,18 @@ Please follow the steps to resolve the conflicts:
   }
 
   private async createSquashCommit(startHash: string, endHash: string) {
+    // merge
+    if (startHash.includes(' ')) {
+      const parents = startHash.split(' ');
+      if (this.isContains && !this.isHistorical) {
+        await this.overwrite(endHash, parents);
+      } else {
+        // TODO sync to conflict branch
+      }
+      await this.commitSquash(startHash, endHash);
+      return;
+    }
+
     // Create patch
     const args = this.withPaths([
       'log',
@@ -407,6 +418,10 @@ Please follow the steps to resolve the conflicts:
       // TODO squash overwrite
     }
 
+    return await this.commitSquash(startHash, endHash);
+  }
+
+  private async commitSquash(startHash: string, endHash: string) {
     // Ignore untracked files
     await this.target.run(['add', '-u']);
     await this.target.run([

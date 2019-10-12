@@ -1768,9 +1768,9 @@ To reset to previous HEAD:
       squash: true,
     });
 
-    expect(fs.existsSync(source.getFile('test.txt'))).toBeTruthy();
-    expect(fs.existsSync(source.getFile('test2.txt'))).toBeTruthy();
-    expect(fs.existsSync(source.getFile('test3.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test2.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test3.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s']);
     expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
@@ -1796,8 +1796,46 @@ To reset to previous HEAD:
       squash: true,
     });
 
-    expect(fs.existsSync(source.getFile('test2.txt'))).toBeTruthy();
-    expect(fs.existsSync(source.getFile('test3.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test2.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test3.txt'))).toBeTruthy();
+
+    const result = await target.run(['log', '--format=%s', '-1']);
+    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
+  });
+
+  test('squash from a merge', async () => {
+    const source = await createRepo();
+
+    await source.commitFile('test.txt');
+    await source.run(['checkout', '-b', 'branch']);
+    await source.commitFile('test2.txt');
+    await source.run(['checkout', 'master']);
+    await source.run([
+      'merge',
+      '--no-ff',
+      'branch',
+    ]);
+    await source.run(['branch', '-d', 'branch']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    const startHash = await source.run(['rev-parse', 'HEAD']);
+    await source.commitFile('test3.txt');
+    await source.commitFile('test4.txt');
+    const endHash = await source.run(['rev-parse', 'HEAD']);
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    expect(fs.existsSync(target.getFile('test3.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('test4.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s', '-1']);
     expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
