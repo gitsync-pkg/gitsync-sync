@@ -1840,4 +1840,24 @@ To reset to previous HEAD:
     const result = await target.run(['log', '--format=%s', '-1']);
     expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
   });
+
+  test('squash new branch start from merge', async () => {
+    // todo
+  });
+
+  test('squash expand logs', async () => {
+    // todo
+  });
+
+  test('squash conflict will create conflict branch', async () => {
+    // todo
+  });
+
+  test('squash repo not contains will create conflict branch', async () => {
+    // todo
+  });
+
+  test('squash', async () => {
+    // todo
+  });
 });
