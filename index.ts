@@ -1278,7 +1278,7 @@ Please follow the steps to resolve the conflicts:
       const row = rows[index];
 
       if (!row.includes('*')) {
-        return;
+        continue;
       }
 
       const [hash, detail] = this.split(row, '-');
