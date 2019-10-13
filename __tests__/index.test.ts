@@ -1909,10 +1909,6 @@ To reset to previous HEAD:
     expect(result2).not.toContain('\n');
     expect(result2).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
 
-    // @ts-ignore
-    npmlog.level = 'verbose';
-    git.logger = log;
-
     // Sync back won't create commit
     await sync(target, {
       target: source.dir,
