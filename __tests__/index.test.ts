@@ -1884,7 +1884,42 @@ To reset to previous HEAD:
   });
 
   test('squash expand logs', async () => {
-    // todo
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('test2.txt');
+    const endHash = await source.run(['rev-parse', 'HEAD']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    const result = await target.run(['log', '--format=%s']);
+    expect(result).not.toContain('\n');
+    expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+
+    // Sync again won't create commit
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+    const result2 = await target.run(['log', '--format=%s']);
+    expect(result2).not.toContain('\n');
+    expect(result2).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+
+    // @ts-ignore
+    npmlog.level = 'verbose';
+    git.logger = log;
+
+    // Sync back won't create commit
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+    });
+    const result3 = await source.run(['log', '--format=%s', '-1']);
+    expect(result3).toContain(`add test2.txt`);
   });
 
   test('squash conflict will create conflict branch', async () => {
@@ -1895,7 +1930,7 @@ To reset to previous HEAD:
     // todo
   });
 
-  test('squash', async () => {
+  test('squash sync new branch from synced commit', async () => {
     // todo
   });
 });

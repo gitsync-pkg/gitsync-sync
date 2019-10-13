@@ -11,7 +11,6 @@ import * as npmlog from "npmlog";
 import * as ProgressBar from 'progress';
 import * as micromatch from 'micromatch';
 import * as inquirer from 'inquirer';
-import has = Reflect.has;
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -173,9 +172,11 @@ To reset to previous HEAD:
     const sourceBranches = await this.parseBranches(this.source);
     const targetBranches = await this.parseBranches(this.target);
 
-    // TODO squash expand logs
-    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths);
-    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths);
+    let firstLog: string = '';
+    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths, {}, this.target, (hash: string) => {
+      firstLog || (firstLog = hash);
+    });
+    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths, {}, this.source);
 
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
@@ -222,7 +223,7 @@ To reset to previous HEAD:
       }
     }
 
-    const branch = await this.getBranchFromLog(sourceLogs);
+    const branch = await this.getBranchFromLog(firstLog);
     this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
 
     const targetBranch = await this.target.getBranch();
@@ -313,6 +314,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   private async createSquashCommits(sourceBranches: any, targetBranches: any, hashes: string[]) {
+    log.debug('Start squash commit');
+
     let skipped = 0;
     const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
 
@@ -322,6 +325,8 @@ Please follow the steps to resolve the conflicts:
       const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
 
       if (!_.includes(targetBranches, sourceBranch)) {
+        log.debug(`Target branch "${sourceBranch}" does not exist`);
+
         const [hash, parent] = this.parseHash(hashes[0]);
         await this.createSquashCommit(parent, sourceBranchHash);
         this.tickProgressBar(progressBar);
@@ -329,7 +334,14 @@ Please follow the steps to resolve the conflicts:
       }
 
       const targetBranchHash = await this.target.run(['rev-parse', sourceBranch]);
+      log.debug(`Target branch "${sourceBranch}" exist, trying to create squash commit from ${targetBranchHash}`);
+
       const sourceStartHash = await this.getSourceHash(targetBranchHash);
+      if (!sourceStartHash) {
+        log.warn(`Target branch commit not found in source repository`);
+        // TODO create conflict branch from root
+        continue;
+      }
 
       if (sourceBranchHash === sourceStartHash) {
         log.debug(`Branch "${localBranch}" is up to date, skipping`);
@@ -1094,7 +1106,7 @@ Please follow the steps to resolve the conflicts:
     // because git will convert commit message "a\nb" to "a b" as subject,
     // so search by "a b" won't match the log.
     // @see SyncCommandTest::testSearchCommitMessageContainsLineBreak
-    const log = await this.source.run([
+    const log = await this.target.run([
       'log',
       '--format=%ct %at %B',
       '-1',
@@ -1218,7 +1230,7 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, branches: string[], paths: string[]): Promise<StringStringMap> {
+  protected async getLogs(repo: Git, revisions: string[], paths: string[], logs: StringStringMap = {}, targetRepo: Git, logCallback: Function = null) {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
     if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
@@ -1247,8 +1259,8 @@ Please follow the steps to resolve the conflicts:
       args.push('-' + this.options.maxCount);
     }
 
-    if (branches.length) {
-      args = args.concat(branches);
+    if (revisions.length) {
+      args = args.concat(revisions);
     } else {
       args.push('--all');
     }
@@ -1256,20 +1268,39 @@ Please follow the steps to resolve the conflicts:
     // Do not specify root directory, so that logs will contain *empty* commits (include merges)
     args = this.withPaths(args, paths);
 
-    let log = await repo.run(args);
-    if (!log) {
-      return {};
+    let result = await repo.run(args);
+    if (!result) {
+      return logs;
     }
 
-    let logs: StringStringMap = {};
-    log.split("\n").forEach((row: string) => {
+    const rows = result.split('\n');
+    for (const index in rows) {
+      const row = rows[index];
+
       if (!row.includes('*')) {
         return;
       }
 
       const [hash, detail] = this.split(row, '-');
+
+      if (logCallback) {
+        logCallback(hash, detail);
+      }
+
+      // Expand squashed commit
+      if (detail.includes('chore(sync): squash commit from')) {
+        const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(detail);
+        if (matches) {
+          log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
+          logs = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, logs, repo);
+          continue;
+        } else {
+          log.debug(`Cannot parse squash revisions in message: ${detail}`);
+        }
+      }
+
       logs[hash] = detail;
-    });
+    }
     return logs;
   }
 
@@ -1372,8 +1403,7 @@ Please follow the steps to resolve the conflicts:
     return branches;
   }
 
-  protected async getBranchFromLog(logs: StringStringMap) {
-    let log = this.getFirstKey(logs)
+  protected async getBranchFromLog(log: string) {
     if (!log) {
       return '';
     }
