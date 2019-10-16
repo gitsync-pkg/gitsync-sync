@@ -33,6 +33,7 @@ export interface SyncOptions {
   removeTagPrefix?: string,
   filter?: string[],
   squash?: boolean,
+  squashBaseBranch?: string,
 }
 
 export interface SyncArguments extends Arguments<SyncOptions> {
@@ -60,6 +61,7 @@ class Sync {
     preserveCommit: true,
     addTagPrefix: '',
     removeTagPrefix: '',
+    squashBaseBranch: 'master',
   };
   private initHash: string;
   private source: Git;
@@ -223,39 +225,40 @@ To reset to previous HEAD:
       }
     }
 
-    const branch = await this.getBranchFromLog(firstLog);
-    this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
-
     const targetBranch = await this.target.getBranch();
     this.origBranch = targetBranch;
 
-    if (this.currentBranch && targetBranch !== this.defaultBranch) {
-      if (!targetBranches.includes(this.defaultBranch)) {
-        await this.target.run(['checkout', '-b', this.defaultBranch]);
-      } else {
-        await this.target.run(['checkout', this.defaultBranch]);
-      }
-    }
-
-    const hashes = _.reverse(Object.keys(newLogs));
 
     if (this.options.squash) {
-      await this.createSquashCommits(sourceBranches, targetBranches, hashes);
+      await this.createSquashCommits(sourceBranches, targetBranches);
     } else {
+      const branch = await this.getBranchFromLog(firstLog);
+      this.currentBranch = this.defaultBranch = this.toLocalBranch(branch);
+
+      if (this.currentBranch && targetBranch !== this.defaultBranch) {
+        if (!targetBranches.includes(this.defaultBranch)) {
+          await this.target.run(['checkout', '-b', this.defaultBranch]);
+        } else {
+          await this.target.run(['checkout', this.defaultBranch]);
+        }
+      }
+
+      const hashes = _.reverse(Object.keys(newLogs));
+
       const progressBar = this.createProgressBar(newCount);
       for (let key in hashes) {
         await this.applyPatch(hashes[key]);
         this.tickProgressBar(progressBar)
       }
+
+      log.info(
+        'Synced %s %s.',
+        theme.info(newCount.toString()),
+        this.pluralize('commit', newCount)
+      );
+
+      await this.syncBranches(sourceBranches, targetBranches);
     }
-
-    log.info(
-      'Synced %s %s.',
-      theme.info(newCount.toString()),
-      this.pluralize('commit', newCount)
-    );
-
-    await this.syncBranches(sourceBranches, targetBranches);
 
     if (this.origBranch) {
       // If target is a new repository without commits, it doesn't have any branch
@@ -313,7 +316,7 @@ Please follow the steps to resolve the conflicts:
     return [hash, parent];
   }
 
-  private async createSquashCommits(sourceBranches: any, targetBranches: any, hashes: string[]) {
+  private async createSquashCommits(sourceBranches: any, targetBranches: any) {
     log.debug('Start squash commit');
 
     let skipped = 0;
@@ -321,61 +324,63 @@ Please follow the steps to resolve the conflicts:
 
     for (let key in sourceBranches) {
       let sourceBranch: string = sourceBranches[key];
-      let localBranch = this.toLocalBranch(sourceBranch);
-      const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
-
-      if (!_.includes(targetBranches, sourceBranch)) {
-        log.debug(`Target branch "${sourceBranch}" does not exist`);
-
-        const [hash, parent] = this.parseHash(hashes[0]);
-        await this.createSquashCommit(parent, sourceBranchHash);
-        this.tickProgressBar(progressBar);
-        continue;
-      }
-
-      const targetBranchHash = await this.target.run(['rev-parse', sourceBranch]);
-      log.debug(`Target branch "${sourceBranch}" exist, trying to create squash commit from ${targetBranchHash}`);
-
-      const sourceStartHash = await this.getSourceHash(targetBranchHash);
-      if (!sourceStartHash) {
-        log.warn(`Target branch commit not found in source repository`);
-        // TODO create conflict branch from root
-        continue;
-      }
-
-      if (sourceBranchHash === sourceStartHash) {
-        log.debug(`Branch "${localBranch}" is up to date, skipping`);
-        this.tickProgressBar(progressBar)
-        continue;
-      }
-
-      const targetHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash);
-
-      if (sourceBranch === this.currentBranch) {
-        if (this.isContains) {
-          // Update target HEAD only if source fully contains target
-          // otherwise, target commits that not in the source will be lost
-          await this.target.run(['reset', '--hard', targetHash]);
-        } else {
-          log.info('Target repository has commits that have not been sync back to source repository, ' +
-            `do not update "${sourceBranch}" branch to avoid lost commits`);
-        }
-      } else {
-        await this.target.run(['branch', '-f', sourceBranch, targetHash]);
-      }
+      await this.syncSquashBranch(sourceBranch, targetBranches);
 
       this.tickProgressBar(progressBar)
     }
   }
 
-  private async createSquashCommit(startHash: string, endHash: string) {
+  private async syncSquashBranch(sourceBranch: string, targetBranches: string[]) {
+    let localBranch = this.toLocalBranch(sourceBranch);
+    const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
+
+    if (_.includes(targetBranches, sourceBranch)) {
+      const sourceLogs = await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
+      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, {}, this.source);
+
+      // 找到当前仓库有,而目标仓库没有的记录
+      const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
+      const newLogs = await this.filterEmptyLogs(newLogsDiff);
+      this.detectHistorical(newLogs, sourceLogs);
+
+      const hashes = Object.keys(newLogs);
+      if (hashes.length === 0) {
+        log.debug(`Branch "${localBranch}" is up to date, skipping`);
+        return;
+      }
+
+      const [hash, sourceStartHash] = this.parseHash(hashes[hashes.length - 1]);
+      await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
+      return ;
+    }
+
+    await this.createNewSquashBranch(sourceBranch);
+  }
+
+  private async createNewSquashBranch(sourceBranch: string) {
+    log.debug(`Target branch "${sourceBranch}" does not exist`);
+
+    let commitStartHash: string;
+    if (sourceBranch === this.options.squashBaseBranch) {
+      // Create new branch from root
+      commitStartHash = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+    } else {
+      await this.target.run(['checkout', '-b', sourceBranch, this.options.squashBaseBranch]);
+      commitStartHash = await this.source.run(['rev-parse', this.options.squashBaseBranch]);
+    }
+
+    const commitEndHash = await this.source.run(['rev-parse', sourceBranch]);
+    await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch);
+  }
+
+  private async createSquashCommit(startHash: string, endHash: string, branch: string) {
     // merge
     if (startHash.includes(' ')) {
       const parents = startHash.split(' ');
       if (this.isContains && !this.isHistorical) {
         await this.overwrite(endHash, parents);
       } else {
-        // TODO sync to conflict branch
+        // TODO squash sync to conflict branch
       }
       await this.commitSquash(startHash, endHash);
       return;
@@ -434,7 +439,16 @@ Please follow the steps to resolve the conflicts:
     try {
       await this.target.run(patchArgs, {input: patch});
     } catch (e) {
-      // TODO squash overwrite
+
+      const conflictBranch = this.getConflictBranchName(branch);
+      await this.target.run([
+        'checkout',
+        '-b',
+        conflictBranch,
+        branch,
+      ]);
+      this.conflictBranches.push(branch);
+      await this.overwrite(endHash, [startHash]);
     }
 
     return await this.commitSquash(startHash, endHash);
@@ -817,6 +831,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async overwrite(hash: string, parents: string[]) {
+    log.debug(`Start overwrite files from ${hash} to ${parents}`);
+
     let results = [];
     for (let i in parents) {
       let result = await this.source.run(this.withPaths([

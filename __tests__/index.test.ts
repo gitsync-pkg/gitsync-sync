@@ -1919,7 +1919,38 @@ To reset to previous HEAD:
   });
 
   test('squash conflict will create conflict branch', async () => {
-    // todo
+    const source = await createRepo();
+    await source.commitFile('test.txt', 'initial content', 'init');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+
+    // Generate conflict content
+    await source.commitFile('test.txt', 'new content by source repo', 'update by source repo');
+    await target.commitFile('test.txt', 'new content by target repo', 'update by target repo');
+
+    await source.commitFile('test2.txt');
+
+    // Source repository don't contain target repository, so conflict will not be resolved and created conflict branch
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+        squash: true,
+      });
+    });
+    expect(error).toEqual(new Error('conflict'));
+
+    expect(fs.readFileSync(target.getFile('test.txt'), 'utf-8')).toBe('new content by target repo');
+
+    const result = await target.run(['branch', '-l']);
+    expect(result).toContain('master-gitsync-conflict');
+
+    await target.run(['checkout', 'master-gitsync-conflict']);
+    expect(fs.readFileSync(target.getFile('test2.txt'), 'utf-8')).toBe('test2.txt');
   });
 
   test('squash repo not contains will create conflict branch', async () => {
