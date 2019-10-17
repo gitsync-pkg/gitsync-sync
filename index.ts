@@ -439,7 +439,7 @@ Please follow the steps to resolve the conflicts:
     try {
       await this.target.run(patchArgs, {input: patch});
     } catch (e) {
-
+      await this.target.run(['reset', '--hard', 'HEAD']);
       const conflictBranch = this.getConflictBranchName(branch);
       await this.target.run([
         'checkout',

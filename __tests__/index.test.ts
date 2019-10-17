@@ -1957,7 +1957,7 @@ To reset to previous HEAD:
     // todo
   });
 
-  test('squash sync new branch from synced commit', async () => {
+  test('create tag from squash commit', async () => {
     // todo
   });
 });
