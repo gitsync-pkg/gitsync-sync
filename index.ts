@@ -83,6 +83,7 @@ class Sync {
   private env: StringStringMap;
   private sourcePaths: string[] = [];
   private targetPaths: string[] = [];
+  private targetSquashes: any = {};
 
   async sync(options: SyncOptions) {
     this.config = new Config;
@@ -335,8 +336,13 @@ Please follow the steps to resolve the conflicts:
     const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
 
     if (_.includes(targetBranches, sourceBranch)) {
+      let squashLogs = {};
       const sourceLogs = await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
-      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, {}, this.source);
+      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, squashLogs, this.source);
+
+      if (localBranch === this.options.squashBaseBranch) {
+        this.targetSquashes = squashLogs;
+      }
 
       // 找到当前仓库有,而目标仓库没有的记录
       const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
@@ -350,11 +356,20 @@ Please follow the steps to resolve the conflicts:
       }
 
       const [hash, sourceStartHash] = this.parseHash(hashes[hashes.length - 1]);
-      await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
+      const newHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
+
+      // Record new squash range
+      if (localBranch === this.options.squashBaseBranch) {
+        this.targetSquashes[newHash] = newLogsDiff;
+      }
+
       return ;
     }
 
-    await this.createNewSquashBranch(sourceBranch);
+    const newHash = await this.createNewSquashBranch(sourceBranch);
+    if (localBranch === this.options.squashBaseBranch) {
+      this.targetSquashes[newHash] = await await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
+    }
   }
 
   private async createNewSquashBranch(sourceBranch: string) {
@@ -370,7 +385,7 @@ Please follow the steps to resolve the conflicts:
     }
 
     const commitEndHash = await this.source.run(['rev-parse', sourceBranch]);
-    await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch);
+    return await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch);
   }
 
   private async createSquashCommit(startHash: string, endHash: string, branch: string) {
@@ -942,7 +957,12 @@ Please follow the steps to resolve the conflicts:
     const progressBar = this.createProgressBar(filteredCount);
     for (let name in filterTags) {
       let tag: Tag = filterTags[name];
-      const targetHash = await this.findTargetTagHash(tag.hash);
+      let targetHash = await this.findTargetTagHash(tag.hash);
+
+      if (!targetHash) {
+        targetHash = this.findTargetHashFromSquashLogs(tag.hash);
+      }
+
       if (!targetHash) {
         const result = await this.source.run([
           'log',
@@ -982,6 +1002,19 @@ Please follow the steps to resolve the conflicts:
       theme.info((filteredCount - skipped).toString()),
       theme.info(skipped.toString())
     );
+  }
+
+  private findTargetHashFromSquashLogs(hash: string) {
+
+
+    for (let targetHash in this.targetSquashes) {
+      for (let logHash in this.targetSquashes[targetHash]) {
+        if (logHash.includes('#' + hash)) {
+          return targetHash;
+        }
+      }
+    }
+    return '';
   }
 
   protected async getTags(repo: Git) {
@@ -1246,7 +1279,7 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, revisions: string[], paths: string[], logs: StringStringMap = {}, targetRepo: Git, logCallback: Function = null) {
+  protected async getLogs(repo: Git, revisions: string[], paths: string[], squashLogs: any = {}, targetRepo: Git, logCallback: Function = null) {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
     if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
@@ -1286,9 +1319,10 @@ Please follow the steps to resolve the conflicts:
 
     let result = await repo.run(args);
     if (!result) {
-      return logs;
+      return {};
     }
 
+    let logs:StringStringMap = {};
     const rows = result.split('\n');
     for (const index in rows) {
       const row = rows[index];
@@ -1308,7 +1342,8 @@ Please follow the steps to resolve the conflicts:
         const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(detail);
         if (matches) {
           log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
-          logs = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, logs, repo);
+          squashLogs[hash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
+          logs = Object.assign(logs, squashLogs);
           continue;
         } else {
           log.debug(`Cannot parse squash revisions in message: ${detail}`);

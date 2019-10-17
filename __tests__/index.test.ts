@@ -1957,7 +1957,25 @@ To reset to previous HEAD:
     // todo
   });
 
-  test('create tag from squash commit', async () => {
-    // todo
+  test('squash create tag from new commits', async () => {
+    const source = await createRepo();
+
+    await source.commitFile('test.txt');
+    await source.run(['tag', '1.0.0']);
+
+    await source.commitFile('test2.txt');
+    await source.run(['tag', '-m', 'Annotated tag', '1.0.1']);
+
+    const target = await createRepo();
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    const tags = await target.run(['tag', '-l', '-n99']);
+    expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + await source.run(['rev-parse', 'HEAD']));
+    expect(tags).toContain('1.0.1           Annotated tag');
   });
 });
