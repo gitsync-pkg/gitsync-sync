@@ -662,12 +662,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async findTargetTagHash(sourceHash: string) {
-    const sourceDirHash = await this.source.run(this.withPaths([
-      'log',
-      '--format=%h',
-      '-1',
-      sourceHash,
-    ], this.sourcePaths));
+    const sourceDirHash = await this.findDirHash(sourceHash);
     if (!sourceDirHash) {
       return false;
     }
@@ -962,7 +957,7 @@ Please follow the steps to resolve the conflicts:
       let targetHash = await this.findTargetTagHash(tag.hash);
 
       if (!targetHash) {
-        targetHash = this.findTargetHashFromSquashLogs(tag.hash);
+        targetHash = await this.findTargetHashFromSquashLogs(tag.hash);
       }
 
       if (!targetHash) {
@@ -1006,12 +1001,24 @@ Please follow the steps to resolve the conflicts:
     );
   }
 
-  private findTargetHashFromSquashLogs(hash: string) {
+  private async findDirHash(sourceHash: string) {
+    return await this.source.run(this.withPaths([
+      'log',
+      '--format=%h',
+      '-1',
+      sourceHash,
+    ], this.sourcePaths));
+  }
 
+  private async findTargetHashFromSquashLogs(sourceHash: string) {
+    const sourceDirHash = await this.findDirHash(sourceHash);
+    if (!sourceDirHash) {
+      return false;
+    }
 
     for (let targetHash in this.targetSquashes) {
       for (let logHash in this.targetSquashes[targetHash]) {
-        if (logHash.includes('#' + hash)) {
+        if (logHash.includes('#' + sourceDirHash)) {
           return targetHash;
         }
       }
