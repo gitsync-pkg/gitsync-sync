@@ -1342,8 +1342,9 @@ Please follow the steps to resolve the conflicts:
         const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(detail);
         if (matches) {
           log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
-          squashLogs[hash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
-          logs = Object.assign(logs, squashLogs[hash]);
+          const [squashHash] = this.parseHash(hash);
+          squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
+          logs = Object.assign(logs, squashLogs[squashHash]);
           continue;
         } else {
           log.debug(`Cannot parse squash revisions in message: ${detail}`);
