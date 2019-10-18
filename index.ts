@@ -341,6 +341,7 @@ Please follow the steps to resolve the conflicts:
       const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, squashLogs, this.source);
 
       if (localBranch === this.options.squashBaseBranch) {
+        // Record squash range from exists branch exists commits
         this.targetSquashes = squashLogs;
       }
 
@@ -358,8 +359,8 @@ Please follow the steps to resolve the conflicts:
       const [hash, sourceStartHash] = this.parseHash(hashes[hashes.length - 1]);
       const newHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
 
-      // Record new squash range
       if (localBranch === this.options.squashBaseBranch) {
+        // Record squash range from exists branch new commit
         this.targetSquashes[newHash] = newLogsDiff;
       }
 
@@ -368,6 +369,7 @@ Please follow the steps to resolve the conflicts:
 
     const newHash = await this.createNewSquashBranch(sourceBranch);
     if (localBranch === this.options.squashBaseBranch) {
+      // Record squash range from new branch new commit
       this.targetSquashes[newHash] = await await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
     }
   }

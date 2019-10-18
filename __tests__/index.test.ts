@@ -1957,7 +1957,7 @@ To reset to previous HEAD:
     // todo
   });
 
-  test('squash create tag from new branch and new commits', async () => {
+  test('squash create tag from new branch new commits', async () => {
     const source = await createRepo();
 
     await source.commitFile('test.txt');
@@ -1979,7 +1979,58 @@ To reset to previous HEAD:
     expect(tags).toContain('1.0.1           Annotated tag');
   });
 
-  test('squash create tag from exists branch and new commits', async () => {
+  test('squash create tag from exists branch new commits', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    const startHash = await source.run(['rev-parse', 'HEAD']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    // Create tag on new commit
+    await source.commitFile('test2.txt');
+    await source.run(['tag', '1.0.1']);
+    const endHash = await source.run(['rev-parse', 'HEAD']);
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    const tags = await target.run(['tag', '-l', '-n99']);
+    expect(tags).toContain(`1.0.1           chore(sync): squash commit from ${startHash} to ${endHash}`);
+  });
+
+  test('squash create tag from exists branch and exists commits', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    const tagHash = await source.run(['rev-parse', 'HEAD']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    // Create tag on synced commit
+    await source.run(['tag', '1.0.0', tagHash]);
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    const tags = await target.run(['tag', '-l', '-n99']);
+    expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
+  });
+
+  test('squash create tag from exists branch new and exists commits ', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
     const tagHash = await source.run(['rev-parse', 'HEAD']);
@@ -2008,9 +2059,5 @@ To reset to previous HEAD:
     const tags = await target.run(['tag', '-l', '-n99']);
     expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
     expect(tags).toContain(`1.0.1           chore(sync): squash commit from ${tagHash} to ${endHash}`);
-  });
-
-  test('squash create tag from exists branch and exists commit', async () => {
-
   });
 });
