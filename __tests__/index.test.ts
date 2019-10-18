@@ -2061,7 +2061,7 @@ To reset to previous HEAD:
     expect(tags).toContain(`1.0.1           chore(sync): squash commit from ${tagHash} to ${endHash}`);
   });
 
-  test('squash crate tag that commit not in synec dir', async () => {
+  test('squash create tag that commit not in sync dir', async () => {
     const source = await createRepo();
     await source.commitFile('package-name/test.txt');
     await source.commitFile('test.txt');
@@ -2075,6 +2075,27 @@ To reset to previous HEAD:
     });
 
     const tags = await target.run(['tag']);
+    expect(tags).toContain('1.0.0');
+  });
+
+  test('squash create tag at squashed commit', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    await target.run(['tag', '1.0.0']);
+    await sync(target, {
+      target: source.dir,
+      sourceDir: '.',
+    });
+
+    const tags = await source.run(['tag']);
     expect(tags).toContain('1.0.0');
   });
 });

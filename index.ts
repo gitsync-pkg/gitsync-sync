@@ -364,7 +364,7 @@ Please follow the steps to resolve the conflicts:
         this.targetSquashes[newHash] = newLogsDiff;
       }
 
-      return ;
+      return;
     }
 
     const newHash = await this.createNewSquashBranch(sourceBranch);
@@ -1098,6 +1098,11 @@ Please follow the steps to resolve the conflicts:
       message = this.split(message, "\n")[0];
     }
 
+    const match = this.parseSquashMessage(message);
+    if (match) {
+      return match[2];
+    }
+
     // Here we assume that a person will not commit the same message in the same second.
     // This is the core logic to sync commits between two repositories.
     let target = await this.target.run([
@@ -1253,7 +1258,7 @@ Please follow the steps to resolve the conflicts:
       return {};
     }
 
-    let logs:StringStringMap = {};
+    let logs: StringStringMap = {};
     const rows = result.split('\n');
     for (const index in rows) {
       const row = rows[index];
@@ -1269,17 +1274,13 @@ Please follow the steps to resolve the conflicts:
       }
 
       // Expand squashed commit
-      if (detail.includes('chore(sync): squash commit from')) {
-        const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(detail);
-        if (matches) {
-          log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
-          const [squashHash] = this.parseHash(hash);
-          squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
-          logs = Object.assign(logs, squashLogs[squashHash]);
-          continue;
-        } else {
-          log.debug(`Cannot parse squash revisions in message: ${detail}`);
-        }
+      const matches = this.parseSquashMessage(detail);
+      if (matches) {
+        log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
+        const [squashHash] = this.parseHash(hash);
+        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
+        logs = Object.assign(logs, squashLogs[squashHash]);
+        continue;
       }
 
       logs[hash] = detail;
@@ -1541,6 +1542,17 @@ Please follow the steps to resolve the conflicts:
       return args;
     }
     return args.concat(['--'].concat(paths));
+  }
+
+  private parseSquashMessage(message: string) {
+    if (message.includes('chore(sync): squash commit from')) {
+      const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(message);
+      if (!matches) {
+        log.debug(`Cannot parse squash revisions in message: ${message}`);
+      }
+      return matches;
+    }
+    return null;
   }
 }
 
