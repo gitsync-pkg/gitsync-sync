@@ -2104,4 +2104,34 @@ To reset to previous HEAD:
     const tags = await source.run(['tag']);
     expect(tags).toContain('1.0.0');
   });
+
+  test('allow sourceDir contains custom name after # sign', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+
+    const target = await createRepo();
+    const targetDir = path.resolve(target.dir);
+
+    await sync(source, {
+      target: targetDir,
+      sourceDir: '.#custom-name',
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBe(true);
+  });
+
+  test('\\# in sourceDir will be replace to #', async () => {
+    const source = await createRepo();
+    await source.commitFile('#123/test.txt');
+
+    const target = await createRepo();
+    const targetDir = path.resolve(target.dir);
+
+    await sync(source, {
+      target: targetDir,
+      sourceDir: '\\#123', // replace to '#123'
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBe(true);
+  });
 });

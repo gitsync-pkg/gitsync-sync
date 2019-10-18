@@ -168,7 +168,12 @@ To reset to previous HEAD:
 
   private prepareOptions(options: SyncOptions) {
     Object.assign(this.options, options);
+    this.options.sourceDir = this.removeNameInDir(this.options.sourceDir);
     this.options.filter = this.toArray(this.options.filter);
+  }
+
+  private removeNameInDir(dir: string) {
+    return dir.replace(/\\#/g, '//').split('#')[0].replace(/\\\\/g, '#');
   }
 
   protected async syncCommits() {
