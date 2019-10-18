@@ -176,10 +176,10 @@ To reset to previous HEAD:
     const targetBranches = await this.parseBranches(this.target);
 
     let firstLog: string = '';
-    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths, {}, this.target, (hash: string) => {
+    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths, {}, this.target, this.targetPaths, (hash: string) => {
       firstLog || (firstLog = hash);
     });
-    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths, {}, this.source);
+    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths, {}, this.source, this.sourcePaths);
 
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
@@ -337,8 +337,8 @@ Please follow the steps to resolve the conflicts:
 
     if (_.includes(targetBranches, sourceBranch)) {
       let squashLogs = {};
-      const sourceLogs = await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
-      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, squashLogs, this.source);
+      const sourceLogs = await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target, this.targetPaths);
+      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, squashLogs, this.source, this.sourcePaths);
 
       if (localBranch === this.options.squashBaseBranch) {
         // Record squash range from exists branch exists commits
@@ -370,7 +370,7 @@ Please follow the steps to resolve the conflicts:
     const newHash = await this.createNewSquashBranch(sourceBranch);
     if (localBranch === this.options.squashBaseBranch) {
       // Record squash range from new branch new commit
-      this.targetSquashes[newHash] = await await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target);
+      this.targetSquashes[newHash] = await await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target, this.targetPaths);
     }
   }
 
@@ -1215,7 +1215,7 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, revisions: string[], paths: string[], squashLogs: any = {}, targetRepo: Git, logCallback: Function = null) {
+  protected async getLogs(repo: Git, revisions: string[], paths: string[], squashLogs: any = {}, targetRepo: Git, targetPaths: string[], logCallback: Function = null) {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
     if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
@@ -1278,8 +1278,10 @@ Please follow the steps to resolve the conflicts:
       if (matches) {
         log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
         const [squashHash] = this.parseHash(hash);
-        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], paths, squashLogs, repo);
+        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], targetPaths,  squashLogs, repo, paths);
+        console.log('beffffff', logs);
         logs = Object.assign(logs, squashLogs[squashHash]);
+        console.log('~~~', logs, squashLogs[squashHash]);
         continue;
       }
 

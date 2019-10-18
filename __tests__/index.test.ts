@@ -1765,12 +1765,13 @@ To reset to previous HEAD:
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
+      targetDir: 'package-name',
       squash: true,
     });
 
-    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
-    expect(fs.existsSync(target.getFile('test2.txt'))).toBeTruthy();
-    expect(fs.existsSync(target.getFile('test3.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test2.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test3.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s']);
     expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
@@ -1785,6 +1786,7 @@ To reset to previous HEAD:
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
+      targetDir: 'package-name',
     });
 
     await source.commitFile('test2.txt');
@@ -1793,11 +1795,12 @@ To reset to previous HEAD:
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
+      targetDir: 'package-name',
       squash: true,
     });
 
-    expect(fs.existsSync(target.getFile('test2.txt'))).toBeTruthy();
-    expect(fs.existsSync(target.getFile('test3.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test2.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('package-name/test3.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s', '-1']);
     expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
@@ -1893,6 +1896,7 @@ To reset to previous HEAD:
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
+      targetDir: 'package-name',
       squash: true,
     });
 
@@ -1904,6 +1908,7 @@ To reset to previous HEAD:
     await sync(source, {
       target: target.dir,
       sourceDir: '.',
+      targetDir: 'package-name',
     });
     const result2 = await target.run(['log', '--format=%s']);
     expect(result2).not.toContain('\n');
@@ -1912,7 +1917,8 @@ To reset to previous HEAD:
     // Sync back won't create commit
     await sync(target, {
       target: source.dir,
-      sourceDir: '.',
+      sourceDir: 'package-name',
+      targetDir: '.',
     });
     const result3 = await source.run(['log', '--format=%s', '-1']);
     expect(result3).toContain(`add test2.txt`);
