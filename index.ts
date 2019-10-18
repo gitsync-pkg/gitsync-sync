@@ -1279,9 +1279,7 @@ Please follow the steps to resolve the conflicts:
         log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
         const [squashHash] = this.parseHash(hash);
         squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], targetPaths,  squashLogs, repo, paths);
-        console.log('beffffff', logs);
         logs = Object.assign(logs, squashLogs[squashHash]);
-        console.log('~~~', logs, squashLogs[squashHash]);
         continue;
       }
 
