@@ -1954,7 +1954,7 @@ To reset to previous HEAD:
   });
 
   test('squash repo not contains will create conflict branch', async () => {
-    // todo
+    // todo wait util refactoring common commit progress for normal and squashed commits
   });
 
   test('squash create tag from new branch new commits', async () => {
