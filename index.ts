@@ -168,12 +168,8 @@ To reset to previous HEAD:
 
   private prepareOptions(options: SyncOptions) {
     Object.assign(this.options, options);
-    this.options.sourceDir = this.removeNameInDir(this.options.sourceDir);
+    this.options.sourceDir = this.config.parseSourceDir(this.options.sourceDir).realSourceDir;
     this.options.filter = this.toArray(this.options.filter);
-  }
-
-  private removeNameInDir(dir: string) {
-    return dir.replace(/\\#/g, '//').split('#')[0].replace(/\/\//g, '#');
   }
 
   protected async syncCommits() {
@@ -1283,7 +1279,7 @@ Please follow the steps to resolve the conflicts:
       if (matches) {
         log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
         const [squashHash] = this.parseHash(hash);
-        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], targetPaths,  squashLogs, repo, paths);
+        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], targetPaths, squashLogs, repo, paths);
         logs = Object.assign(logs, squashLogs[squashHash]);
         continue;
       }

@@ -2120,7 +2120,7 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('test.txt'))).toBe(true);
   });
 
-  test('\\# in sourceDir will be replace to #', async () => {
+  test('## in sourceDir will be replace to #', async () => {
     const source = await createRepo();
     await source.commitFile('#123/test.txt');
 
@@ -2129,7 +2129,7 @@ To reset to previous HEAD:
 
     await sync(source, {
       target: targetDir,
-      sourceDir: '\\#123', // replace to '#123'
+      sourceDir: '##123',
     });
 
     expect(fs.existsSync(target.getFile('test.txt'))).toBe(true);
