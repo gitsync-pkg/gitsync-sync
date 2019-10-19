@@ -173,7 +173,7 @@ To reset to previous HEAD:
   }
 
   private removeNameInDir(dir: string) {
-    return dir.replace(/\\#/g, '//').split('#')[0].replace(/\\\\/g, '#');
+    return dir.replace(/\\#/g, '//').split('#')[0].replace(/\/\//g, '#');
   }
 
   protected async syncCommits() {
