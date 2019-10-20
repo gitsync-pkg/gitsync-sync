@@ -931,7 +931,7 @@ Please follow the steps to resolve the conflicts:
 
       let dir = path.dirname(target);
       if (!fs.existsSync(dir)) {
-        await mkdir(path.dirname(target));
+        await mkdir(path.dirname(target), {recursive: true});
       }
       await rename(tempDir + '/' + file, target);
     }
