@@ -321,6 +321,8 @@ Please follow the steps to resolve the conflicts:
   private async createSquashCommits(sourceBranches: any, targetBranches: any) {
     log.debug('Start squash commit');
 
+    sourceBranches = this.moveToFirst(sourceBranches, this.options.squashBaseBranch);
+
     let skipped = 0;
     const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
 
@@ -1554,6 +1556,12 @@ Please follow the steps to resolve the conflicts:
       return matches;
     }
     return null;
+  }
+
+  private moveToFirst(array: any, element: any) {
+    array.splice(array.indexOf(element), 1);
+    array.unshift(element);
+    return array;
   }
 }
 

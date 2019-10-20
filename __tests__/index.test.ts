@@ -2105,6 +2105,28 @@ To reset to previous HEAD:
     expect(tags).toContain('1.0.0');
   });
 
+  test('squash multi branches', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    const startHash = await source.run(['rev-parse', 'HEAD']);
+
+    // Git branches sorted by alphabetical order, while sync will move master branch to first
+    await source.run(['checkout', '-b', 'before-master']);
+    await source.commitFile('test2.txt');
+    const endHash = await source.run(['rev-parse', 'HEAD']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+    const result = await target.run(['log', '--format=%s', '--all']);
+    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}
+chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${startHash}`);
+  });
+
   test('allow sourceDir contains custom name after # sign', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
