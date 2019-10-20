@@ -466,16 +466,16 @@ Please follow the steps to resolve the conflicts:
 
       if (await this.target.hasCommit()) {
         await this.target.run(['reset', '--hard', 'HEAD']);
+        const conflictBranch = this.getConflictBranchName(branch);
+        await this.target.run([
+          'checkout',
+          '-b',
+          conflictBranch,
+          branch,
+        ]);
+        this.conflictBranches.push(branch);
       }
 
-      const conflictBranch = this.getConflictBranchName(branch);
-      await this.target.run([
-        'checkout',
-        '-b',
-        conflictBranch,
-        branch,
-      ]);
-      this.conflictBranches.push(branch);
       await this.overwrite(endHash, [startHash]);
     }
 
