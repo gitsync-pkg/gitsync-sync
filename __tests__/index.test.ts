@@ -2127,6 +2127,20 @@ To reset to previous HEAD:
 chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${startHash}`);
   });
 
+  test('squash throw error when base branch not exists', async () => {
+    const source = await createRepo();
+    const target = await createRepo();
+    const error = await catchError(async () => {
+      await sync(source, {
+        target: target.dir,
+        sourceDir: '.',
+        squash: true,
+        squashBaseBranch: 'not-exists'
+      });
+    });
+    expect(error).toEqual(new Error('Squash branch "not-exists" does not exists'));
+  });
+
   test('allow sourceDir contains custom name after # sign', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');

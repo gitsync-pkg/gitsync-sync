@@ -321,6 +321,9 @@ Please follow the steps to resolve the conflicts:
   private async createSquashCommits(sourceBranches: any, targetBranches: any) {
     log.debug('Start squash commit');
 
+    if (!sourceBranches.includes(this.options.squashBaseBranch)) {
+      throw new Error(`Squash branch "${this.options.squashBaseBranch}" does not exists`);
+    }
     sourceBranches = this.moveToFirst(sourceBranches, this.options.squashBaseBranch);
 
     let skipped = 0;
