@@ -393,10 +393,10 @@ Please follow the steps to resolve the conflicts:
     }
 
     const commitEndHash = await this.source.run(['rev-parse', sourceBranch]);
-    return await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch);
+    return await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch, true);
   }
 
-  private async createSquashCommit(startHash: string, endHash: string, branch: string) {
+  private async createSquashCommit(startHash: string, endHash: string, branch: string, isNew: boolean = false) {
     // merge
     if (startHash.includes(' ')) {
       const parents = startHash.split(' ');
@@ -466,14 +466,17 @@ Please follow the steps to resolve the conflicts:
 
       if (await this.target.hasCommit()) {
         await this.target.run(['reset', '--hard', 'HEAD']);
-        const conflictBranch = this.getConflictBranchName(branch);
-        await this.target.run([
-          'checkout',
-          '-b',
-          conflictBranch,
-          branch,
-        ]);
-        this.conflictBranches.push(branch);
+
+        if (!isNew) {
+          const conflictBranch = this.getConflictBranchName(branch);
+          await this.target.run([
+            'checkout',
+            '-b',
+            conflictBranch,
+            branch,
+          ]);
+          this.conflictBranches.push(branch);
+        }
       }
 
       await this.overwrite(endHash, [startHash]);
