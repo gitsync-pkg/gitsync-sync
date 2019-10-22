@@ -2141,6 +2141,24 @@ chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${st
     expect(error).toEqual(new Error('Squash branch "not-exists" does not exists'));
   });
 
+  test('squash do not create conflict branch on new branch', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt', 'test');
+    await source.run(['checkout', '-b', 'test']);
+    await source.commitFile('test.txt', 'change', 'change');
+    await source.run(['checkout', 'master']);
+    await source.run(['merge', 'test']);
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      squash: true,
+    });
+
+
+  });
+
   test('allow sourceDir contains custom name after # sign', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
