@@ -66,8 +66,6 @@ class Sync {
   private initHash: string;
   private source: Git;
   private target: Git;
-  private sourceDir: string;
-  private targetDir: string;
   private currentBranch: string;
   private defaultBranch: string;
   private origBranch: string;
@@ -95,9 +93,6 @@ class Sync {
     if (await this.target.run(['status', '--short'])) {
       throw new Error(`Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`);
     }
-
-    this.sourceDir = this.options.sourceDir;
-    this.targetDir = this.options.targetDir;
 
     // TODO move to prepareOptions
     this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
@@ -286,7 +281,7 @@ The conflict ${this.pluralize('branch', branchCount, 'es')}:
 ${branchTips}
 Please follow the steps to resolve the conflicts:
 
-    1. cd ${this.target.dir}/${this.targetDir}
+    1. cd ${this.target.dir}/${this.options.targetDir}
     2. git checkout BRANCH-NAME // Replace BRANCH-NAME to your branch name
     3. git merge ${this.getConflictBranchName('BRANCH-NAME')}
     4. // Follow the tips to resolve the conflicts
@@ -443,14 +438,14 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    if (this.sourceDir && this.sourceDir !== '.') {
-      patchArgs.push('-p' + (this.strCount(this.sourceDir, '/') + 2));
+    if (this.options.sourceDir && this.options.sourceDir !== '.') {
+      patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 2));
     }
 
-    if (this.targetDir && this.targetDir !== '.') {
+    if (this.options.targetDir && this.options.targetDir !== '.') {
       patchArgs = patchArgs.concat([
         '--directory',
-        this.targetDir,
+        this.options.targetDir,
       ]);
     }
 
@@ -768,14 +763,14 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    if (this.sourceDir && this.sourceDir !== '.') {
-      patchArgs.push('-p' + (this.strCount(this.sourceDir, '/') + 2));
+    if (this.options.sourceDir && this.options.sourceDir !== '.') {
+      patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 2));
     }
 
-    if (this.targetDir && this.targetDir !== '.') {
+    if (this.options.targetDir && this.options.targetDir !== '.') {
       patchArgs = patchArgs.concat([
         '--directory',
-        this.targetDir,
+        this.options.targetDir,
       ]);
     }
 
@@ -873,8 +868,8 @@ Please follow the steps to resolve the conflicts:
     }
 
     // TODO normalize
-    let sourceDir = this.sourceDir;
-    if (this.sourceDir === '.') {
+    let sourceDir = this.options.sourceDir;
+    if (this.options.sourceDir === '.') {
       sourceDir = '';
     }
 
@@ -908,7 +903,7 @@ Please follow the steps to resolve the conflicts:
       '--',
     ].concat(updateFiles));
 
-    const targetFullDir = this.target.dir + '/' + this.targetDir;
+    const targetFullDir = this.target.dir + '/' + this.options.targetDir;
 
     // Delete first and then update, so that when the change is renamed,
     // ensure that the file will not be deleted.
@@ -924,7 +919,7 @@ Please follow the steps to resolve the conflicts:
       let file = updateFiles[key];
       let targetFile = file.substr(removeLength);
 
-      targetFiles.push(path.join(this.targetDir, targetFile));
+      targetFiles.push(path.join(this.options.targetDir, targetFile));
       let target = targetFullDir + '/' + targetFile;
 
       let dir = path.dirname(target);
