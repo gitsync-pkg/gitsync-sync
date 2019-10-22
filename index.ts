@@ -363,6 +363,7 @@ Please follow the steps to resolve the conflicts:
       }
 
       const [hash, sourceStartHash] = this.parseHash(hashes[hashes.length - 1]);
+      await this.target.run((['checkout', localBranch]));
       const newHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
 
       if (localBranch === this.options.squashBaseBranch) {
