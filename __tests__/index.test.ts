@@ -797,10 +797,10 @@ Commits
     });
 
     await source.run(['checkout', '-b', 'branch']);
-    await source.commitFile('test.txt', 'branch content');
+    await source.commitFile('test.txt', 'branch content', 'change by branch');
 
     await source.run(['checkout', 'master']);
-    await source.commitFile('test.txt', 'master content');
+    await source.commitFile('test.txt', 'master content', 'change by master');
 
     try {
       await source.run(['merge', 'branch']);
@@ -932,10 +932,10 @@ Please follow the steps to resolve the conflicts:
     await source.commitFile('both-modify-but-delete-after-merge.txt', "a");
 
     await source.run(['checkout', '-b', 'branch']);
-    await source.commitFile('both-modify-but-delete-after-merge.txt', "b");
+    await source.commitFile('both-modify-but-delete-after-merge.txt', "b", 'change by branch');
 
     await source.run(['checkout', 'master']);
-    await source.commitFile('both-modify-but-delete-after-merge.txt', "c");
+    await source.commitFile('both-modify-but-delete-after-merge.txt', "c", 'change by master');
 
     try {
       await source.run([
@@ -973,10 +973,10 @@ Please follow the steps to resolve the conflicts:
     await source.commitFile('modify-after-merge.txt', "a\n\nb");
 
     await source.run(['checkout', '-b', 'branch']);
-    await source.commitFile('modify-after-merge.txt', "a\n\nc");
+    await source.commitFile('modify-after-merge.txt', "a\n\nc", 'change by branch');
 
     await source.run(['checkout', 'master']);
-    await source.commitFile('modify-after-merge.txt', "c\n\nc");
+    await source.commitFile('modify-after-merge.txt', "c\n\nc", 'change by master');
 
     await source.run([
       'merge',
@@ -1282,10 +1282,10 @@ To reset to previous HEAD:
     await source.commitFile('test.txt', 'initial');
 
     await source.run(['checkout', '-b', 'branch']);
-    await source.commitFile('test.txt', 'branch');
+    await source.commitFile('test.txt', 'branch', 'change by branch');
 
     await source.run(['checkout', 'master']);
-    await source.commitFile('test.txt', 'master');
+    await source.commitFile('test.txt', 'master', 'change by master');
 
     try {
       await source.run(['merge', 'branch']);
