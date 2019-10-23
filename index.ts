@@ -85,7 +85,7 @@ class Sync {
 
   async sync(options: SyncOptions) {
     this.config = new Config;
-    this.prepareOptions(options);
+    this.initOptions(options);
 
     this.source = git('.');
 
@@ -93,10 +93,6 @@ class Sync {
     if (await this.target.run(['status', '--short'])) {
       throw new Error(`Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`);
     }
-
-    // TODO move to prepareOptions
-    this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
-    this.options.targetDir = path.normalize(this.options.targetDir + '/');
 
     // @link https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec
     const regex = /^:(!|\^|\/|\([a-z,]+\))(.+?)$/;
@@ -161,8 +157,12 @@ To reset to previous HEAD:
     }
   }
 
-  private prepareOptions(options: SyncOptions) {
+  private initOptions(options: SyncOptions) {
     Object.assign(this.options, options);
+    // append slash to make sure it's a dir, rather than a file
+    this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
+    this.options.targetDir = path.normalize(this.options.targetDir + '/');
+
     this.options.sourceDir = this.config.parseSourceDir(this.options.sourceDir).realSourceDir;
     this.options.filter = this.toArray(this.options.filter);
   }
