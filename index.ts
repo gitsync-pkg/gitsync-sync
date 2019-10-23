@@ -438,9 +438,7 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    if (this.options.sourceDir && this.options.sourceDir !== '.') {
-      patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 2));
-    }
+    patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 1));
 
     if (this.options.targetDir && this.options.targetDir !== '.') {
       patchArgs = patchArgs.concat([
@@ -763,11 +761,9 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    if (this.options.sourceDir && this.options.sourceDir !== '.') {
-      patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 2));
-    }
+    patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 1));
 
-    if (this.options.targetDir && this.options.targetDir !== '.') {
+    if (this.options.targetDir !== './') {
       patchArgs = patchArgs.concat([
         '--directory',
         this.options.targetDir,
@@ -867,17 +863,11 @@ Please follow the steps to resolve the conflicts:
       return;
     }
 
-    // TODO normalize
-    let sourceDir = this.options.sourceDir;
-    if (this.options.sourceDir === '.') {
-      sourceDir = '';
-    }
-
     let removeLength: number;
-    if (sourceDir) {
-      removeLength = sourceDir.length + 1;
-    } else {
+    if (this.options.sourceDir === './') {
       removeLength = 0;
+    } else {
+      removeLength = this.options.sourceDir.length + 1;
     }
 
     const files: StringStringMap = this.parseChangedFiles(results.join('\n'));
