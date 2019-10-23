@@ -159,7 +159,7 @@ To reset to previous HEAD:
 
   private initOptions(options: SyncOptions) {
     Object.assign(this.options, options);
-    // append slash to make sure it's a dir, rather than a file
+    // append a slash to make sure it's a dir, rather than a file
     this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
     this.options.targetDir = path.normalize(this.options.targetDir + '/');
 
