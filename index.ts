@@ -412,16 +412,10 @@ Please follow the steps to resolve the conflicts:
 
     // Create patch
     const args = this.withPaths([
-      'log',
-      '-p',
-      '--reverse',
-      '-m',
+      'diff',
       '--stat',
       '--binary',
       '--color=never',
-      // Commit body may contains *diff like* codes, which cause git-apply fail
-      // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
-      '--format=%n',
       startHash + '..' + endHash,
     ], this.sourcePaths);
 
