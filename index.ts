@@ -160,10 +160,8 @@ To reset to previous HEAD:
   private initOptions(options: SyncOptions) {
     Object.assign(this.options, options);
     // append a slash to make sure it's a dir, rather than a file
-    this.options.sourceDir = path.normalize(this.options.sourceDir + '/');
+    this.options.sourceDir = path.normalize(this.config.parseSourceDir(this.options.sourceDir).realSourceDir + '/');
     this.options.targetDir = path.normalize(this.options.targetDir + '/');
-
-    this.options.sourceDir = this.config.parseSourceDir(this.options.sourceDir).realSourceDir;
     this.options.filter = this.toArray(this.options.filter);
   }
 
@@ -440,7 +438,7 @@ Please follow the steps to resolve the conflicts:
 
     patchArgs.push('-p' + (this.strCount(this.options.sourceDir, '/') + 1));
 
-    if (this.options.targetDir && this.options.targetDir !== '.') {
+    if (this.options.targetDir !== './') {
       patchArgs = patchArgs.concat([
         '--directory',
         this.options.targetDir,
