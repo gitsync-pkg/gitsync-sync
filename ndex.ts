@@ -436,7 +436,7 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    patchArgs.push('-p' + this.getPathDepth(this.options.sourceDir));
+    patchArgs.push('-p' + this.strCount(this.options.sourceDir, '/'));
 
     if (this.options.targetDir !== './') {
       patchArgs = patchArgs.concat([
@@ -759,7 +759,7 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    patchArgs.push('-p' + this.getPathDepth(this.options.sourceDir));
+    patchArgs.push('-p' + this.strCount(this.options.sourceDir, '/'));
 
     if (this.options.targetDir !== './') {
       patchArgs = patchArgs.concat([
@@ -1511,6 +1511,10 @@ Please follow the steps to resolve the conflicts:
     return name + '-gitsync-conflict';
   }
 
+  protected strCount(string: string, search: string) {
+    return string.split(search).length - 1
+  }
+
   protected createProgressBar(total: number) {
     return new ProgressBar(':bar :current/:total :etas', {
       total: total,
@@ -1547,13 +1551,6 @@ Please follow the steps to resolve the conflicts:
     array.splice(array.indexOf(element), 1);
     array.unshift(element);
     return array;
-  }
-
-  private getPathDepth(path: string) {
-    if (path === './') {
-      return 1;
-    }
-    return path.split('/').length;
   }
 }
 

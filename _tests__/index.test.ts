@@ -304,7 +304,7 @@ describe('sync command', () => {
     expect(tags).toContain('1.0.0');
   });
 
-  test('sourceDir option', async () => {
+  test('sourceDir argument', async () => {
     const source = await createRepo();
     await source.commitFile('package-name/package.txt');
 
@@ -317,20 +317,7 @@ describe('sync command', () => {
     expect(fs.existsSync(target.getFile('package.txt'))).toBe(true);
   });
 
-  test('sourceDir option start with ./', async () => {
-    const source = await createRepo();
-    await source.commitFile('package-name/package.txt');
-
-    const target = await createRepo();
-    await sync(source, {
-      target: target.dir,
-      sourceDir: './package-name'
-    });
-
-    expect(fs.existsSync(target.getFile('package.txt'))).toBe(true);
-  });
-
-  test('targetDir option', async () => {
+  test('targetDir argument', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
 
