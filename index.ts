@@ -1551,7 +1551,7 @@ Please follow the steps to resolve the conflicts:
 
   private getPathDepth(path: string) {
     if (path === './') {
-      return 0;
+      return 1;
     }
     return path.split('/').length;
   }
