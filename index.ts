@@ -523,7 +523,7 @@ Please follow the steps to resolve the conflicts:
       'commit',
       '--allow-empty',
       '-am',
-      `chore(sync): squash commit from ${startHash} to ${endHash}`,
+      `chore(sync): squash commits from ${startHash} to ${endHash}`,
     ]);
     return await this.target.run(['rev-parse', 'HEAD']);
   }
@@ -1522,8 +1522,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   private parseSquashMessage(message: string) {
-    if (message.includes('chore(sync): squash commit from')) {
-      const matches = /chore\(sync\): squash commit from (.+?) to (.+?)$/.exec(message);
+    if (message.includes('chore(sync): squash commits from')) {
+      const matches = /chore\(sync\): squash commits from (.+?) to (.+?)$/.exec(message);
       if (!matches) {
         log.debug(`Cannot parse squash revisions in message: ${message}`);
       }

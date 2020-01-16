@@ -1787,7 +1787,7 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('package-name/test3.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s']);
-    expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+    expect(result).toBe(`chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
   });
 
   test('squash to repo contains commit', async () => {
@@ -1816,7 +1816,7 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('package-name/test3.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s', '-1']);
-    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
+    expect(result).toBe(`chore(sync): squash commits from ${startHash} to ${endHash}`);
   });
 
   test('squash from a merge', async () => {
@@ -1854,7 +1854,7 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('test4.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s', '-1']);
-    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
+    expect(result).toBe(`chore(sync): squash commits from ${startHash} to ${endHash}`);
   });
 
   test('squash new branch start from merge', async () => {
@@ -1896,7 +1896,7 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('test4.txt'))).toBeTruthy();
 
     const result = await target.run(['log', '--format=%s', '-1']);
-    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}`);
+    expect(result).toBe(`chore(sync): squash commits from ${startHash} to ${endHash}`);
   });
 
   test('squash expand logs', async () => {
@@ -1915,7 +1915,7 @@ To reset to previous HEAD:
 
     const result = await target.run(['log', '--format=%s']);
     expect(result).not.toContain('\n');
-    expect(result).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+    expect(result).toBe(`chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
 
     // Sync again won't create commit
     await sync(source, {
@@ -1925,7 +1925,7 @@ To reset to previous HEAD:
     });
     const result2 = await target.run(['log', '--format=%s']);
     expect(result2).not.toContain('\n');
-    expect(result2).toBe(`chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
+    expect(result2).toBe(`chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${endHash}`);
 
     // Sync back won't create commit
     await sync(target, {
@@ -1994,7 +1994,7 @@ To reset to previous HEAD:
     });
 
     const tags = await target.run(['tag', '-l', '-n99']);
-    expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + await source.run(['rev-parse', 'HEAD']));
+    expect(tags).toContain('1.0.0           chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + await source.run(['rev-parse', 'HEAD']));
     expect(tags).toContain('1.0.1           Annotated tag');
   });
 
@@ -2022,7 +2022,7 @@ To reset to previous HEAD:
     });
 
     const tags = await target.run(['tag', '-l', '-n99']);
-    expect(tags).toContain(`1.0.1           chore(sync): squash commit from ${startHash} to ${endHash}`);
+    expect(tags).toContain(`1.0.1           chore(sync): squash commits from ${startHash} to ${endHash}`);
   });
 
   test('squash create tag from exists branch and exists commits', async () => {
@@ -2046,7 +2046,7 @@ To reset to previous HEAD:
     });
 
     const tags = await target.run(['tag', '-l', '-n99']);
-    expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
+    expect(tags).toContain('1.0.0           chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
   });
 
   test('squash create tag from exists branch new and exists commits ', async () => {
@@ -2076,8 +2076,8 @@ To reset to previous HEAD:
     });
 
     const tags = await target.run(['tag', '-l', '-n99']);
-    expect(tags).toContain('1.0.0           chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
-    expect(tags).toContain(`1.0.1           chore(sync): squash commit from ${tagHash} to ${endHash}`);
+    expect(tags).toContain('1.0.0           chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ' + tagHash);
+    expect(tags).toContain(`1.0.1           chore(sync): squash commits from ${tagHash} to ${endHash}`);
   });
 
   test('squash create tag that commit not in sync dir', async () => {
@@ -2136,8 +2136,8 @@ To reset to previous HEAD:
     });
 
     const result = await target.run(['log', '--format=%s', '--all']);
-    expect(result).toBe(`chore(sync): squash commit from ${startHash} to ${endHash}
-chore(sync): squash commit from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${startHash}`);
+    expect(result).toBe(`chore(sync): squash commits from ${startHash} to ${endHash}
+chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${startHash}`);
   });
 
   test('squash throw error when base branch not exists', async () => {
