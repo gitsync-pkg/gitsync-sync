@@ -1556,6 +1556,7 @@ To reset to previous HEAD:
     await source.run(['commit', '-m', 'empty'], {env: {GIT_AUTHOR_DATE: now}});
 
     const target = await createRepo();
+    // Commit not in targetDir will be excluded
     await target.run(['commit', '-m', 'empty', '--allow-empty'], {env: {GIT_AUTHOR_DATE: now}});
 
     await sync(source, {
@@ -1564,11 +1565,10 @@ To reset to previous HEAD:
       targetDir: 'package-name',
     });
 
-    // Only have one commit
     const log = await target.run(['log', '--format=%s']);
-    expect(log).toBe('empty');
+    expect(log).toBe('empty\nempty');
 
-    expect(logMessage()).toContain('Commits: new: 0, exists: 1, source: 1, target: 1');
+    expect(logMessage()).toContain('Commits: new: 1, exists: 0, source: 1, target: 0');
   });
 
   test('sync branch at empty commit from root directory wont lost empty commit', async () => {
