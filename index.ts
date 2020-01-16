@@ -1,4 +1,4 @@
-import {Arguments} from "yargs";
+import {Arguments} from 'yargs';
 import git, {Git} from 'git-cli-wrapper';
 import log from '@gitsync/log';
 import {Config} from '@gitsync/config';
@@ -7,7 +7,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as util from 'util';
-import * as npmlog from "npmlog";
+import * as npmlog from 'npmlog';
 import * as ProgressBar from 'progress';
 import * as micromatch from 'micromatch';
 import * as inquirer from 'inquirer';
@@ -17,32 +17,30 @@ const mkdir = util.promisify(fs.mkdir);
 const rename = util.promisify(fs.rename);
 
 export interface SyncOptions {
-  target: string
-  sourceDir: string
-  targetDir?: string
-  includeBranches?: string | string[],
-  excludeBranches?: string | string[],
-  includeTags?: string | string[],
-  excludeTags?: string | string[],
-  noTags?: boolean,
-  after?: number | string,
-  maxCount?: number,
-  preserveCommit?: boolean,
-  yes?: boolean,
-  addTagPrefix?: string,
-  removeTagPrefix?: string,
-  filter?: string[],
-  squash?: boolean,
-  squashBaseBranch?: string,
+  target: string;
+  sourceDir: string;
+  targetDir?: string;
+  includeBranches?: string | string[];
+  excludeBranches?: string | string[];
+  includeTags?: string | string[];
+  excludeTags?: string | string[];
+  noTags?: boolean;
+  after?: number | string;
+  maxCount?: number;
+  preserveCommit?: boolean;
+  yes?: boolean;
+  addTagPrefix?: string;
+  removeTagPrefix?: string;
+  filter?: string[];
+  squash?: boolean;
+  squashBaseBranch?: string;
 }
 
-export interface SyncArguments extends Arguments<SyncOptions> {
-
-}
+export type SyncArguments = Arguments<SyncOptions>;
 
 export interface Tag {
-  hash: string
-  annotated: boolean
+  hash: string;
+  annotated: boolean;
 }
 
 export interface Tags {
@@ -63,35 +61,56 @@ class Sync {
     removeTagPrefix: '',
     squashBaseBranch: 'master',
   };
+
   private initHash: string;
+
   private source: Git;
+
   private target: Git;
+
   private currentBranch: string;
+
   private defaultBranch: string;
+
   private origBranch: string;
+
   private isContains: boolean;
+
   private conflictBranches: string[] = [];
+
   private tempBranches: any = {};
+
   private targetHashes: StringStringMap = {};
+
   private isConflict: boolean;
+
   private isHistorical: boolean;
+
   private workTree: Git;
+
   private conflictBranch: string;
+
   private config: Config;
+
   private env: StringStringMap;
+
   private sourcePaths: string[] = [];
+
   private targetPaths: string[] = [];
+
   private targetSquashes: any = {};
 
   async sync(options: SyncOptions) {
-    this.config = new Config;
+    this.config = new Config();
     this.initOptions(options);
 
     this.source = git('.');
 
     this.target = git(await this.config.getRepoDirByRepo(this.options, true));
     if (await this.target.run(['status', '--short'])) {
-      throw new Error(`Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`);
+      throw new Error(
+        `Target repository "${this.target.dir}" has uncommitted changes, please commit or remove changes before syncing.`,
+      );
     }
 
     // @link https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefpathspecapathspec
@@ -103,7 +122,7 @@ class Sync {
       if (pathSpec.substr(0, 1) === ':') {
         const matches = regex.exec(pathSpec);
         if (matches) {
-          pathPrefix = ':' + matches[1];
+          pathPrefix = `:${matches[1]}`;
           pathSuffix = matches[2];
         }
       }
@@ -124,8 +143,8 @@ class Sync {
     // Use to skip `gitsync post-commit` command when running `gitsync update`
     if (process.env.GITSYNC_UPDATE) {
       this.env = {
-        GITSYNC_UPDATE: process.env.GITSYNC_UPDATE
-      }
+        GITSYNC_UPDATE: process.env.GITSYNC_UPDATE,
+      };
     }
 
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
@@ -148,7 +167,7 @@ To retry your command with verbose logs:
 To reset to previous HEAD:
 
     1. cd ${this.target.dir}
-    2. ${this.initHash ? 'git reset --hard ' + this.initHash : 'git rm --cached -r *'}
+    2. ${this.initHash ? `git reset --hard ${this.initHash}` : 'git rm --cached -r *'}
     ${!this.initHash ? '3. git update-ref -d HEAD' : ''}
 `;
 
@@ -160,8 +179,8 @@ To reset to previous HEAD:
   private initOptions(options: SyncOptions) {
     Object.assign(this.options, options);
     // append a slash to make sure it's a dir, rather than a file
-    this.options.sourceDir = path.normalize(this.config.parseSourceDir(this.options.sourceDir).realSourceDir + '/');
-    this.options.targetDir = path.normalize(this.options.targetDir + '/');
+    this.options.sourceDir = path.normalize(`${this.config.parseSourceDir(this.options.sourceDir).realSourceDir}/`);
+    this.options.targetDir = path.normalize(`${this.options.targetDir}/`);
     this.options.filter = this.toArray(this.options.filter);
   }
 
@@ -169,11 +188,26 @@ To reset to previous HEAD:
     const sourceBranches = await this.parseBranches(this.source);
     const targetBranches = await this.parseBranches(this.target);
 
-    let firstLog: string = '';
-    const sourceLogs = await this.getLogs(this.source, sourceBranches, this.sourcePaths, {}, this.target, this.targetPaths, (hash: string) => {
-      firstLog || (firstLog = hash);
-    });
-    const targetLogs = await this.getLogs(this.target, targetBranches, this.targetPaths, {}, this.source, this.sourcePaths);
+    let firstLog = '';
+    const sourceLogs = await this.getLogs(
+      this.source,
+      sourceBranches,
+      this.sourcePaths,
+      {},
+      this.target,
+      this.targetPaths,
+      (hash: string) => {
+        firstLog || (firstLog = hash);
+      },
+    );
+    const targetLogs = await this.getLogs(
+      this.target,
+      targetBranches,
+      this.targetPaths,
+      {},
+      this.source,
+      this.sourcePaths,
+    );
 
     // 找到当前仓库有,而目标仓库没有的记录
     const newLogsDiff = this.objectValueDiff(sourceLogs, targetLogs);
@@ -197,7 +231,7 @@ To reset to previous HEAD:
       theme.info(_.size(newBranches).toString()),
       theme.info((_.size(sourceBranches) - _.size(newBranches)).toString()),
       theme.info(_.size(sourceBranches).toString()),
-      theme.info(_.size(targetBranches).toString())
+      theme.info(_.size(targetBranches).toString()),
     );
 
     this.isContains = sourceCount - targetCount === newCount;
@@ -209,12 +243,14 @@ To reset to previous HEAD:
     }
 
     if (!this.options.yes) {
-      const {toSync} = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'toSync',
-        message: 'Are you sure to sync?',
-        default: false
-      }]);
+      const {toSync} = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'toSync',
+          message: 'Are you sure to sync?',
+          default: false,
+        },
+      ]);
       if (!toSync) {
         return;
       }
@@ -222,7 +258,6 @@ To reset to previous HEAD:
 
     const targetBranch = await this.target.getBranch();
     this.origBranch = targetBranch;
-
 
     if (this.options.squash) {
       await this.createSquashCommits(sourceBranches, targetBranches);
@@ -241,16 +276,12 @@ To reset to previous HEAD:
       const hashes = _.reverse(Object.keys(newLogs));
 
       const progressBar = this.createProgressBar(newCount);
-      for (let key in hashes) {
+      for (const key in hashes) {
         await this.applyPatch(hashes[key]);
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
       }
 
-      log.info(
-        'Synced %s %s.',
-        theme.info(newCount.toString()),
-        this.pluralize('commit', newCount)
-      );
+      log.info('Synced %s %s.', theme.info(newCount.toString()), this.pluralize('commit', newCount));
 
       await this.syncBranches(sourceBranches, targetBranches);
     }
@@ -267,12 +298,16 @@ To reset to previous HEAD:
       // TODO 1. normalize dir 2. generate "gitsync ..." command
       let branchTips = '';
       this.conflictBranches.forEach((branch: string) => {
-        branchTips += '    ' + theme.info(branch) + ' conflict with ' + theme.info(this.getConflictBranchName(branch)) + "\n";
+        branchTips += `    ${theme.info(branch)} conflict with ${theme.info(this.getConflictBranchName(branch))}\n`;
       });
 
       const branchCount = _.size(this.conflictBranches);
       log.warn(`
-The target repository contains conflict ${this.pluralize('branch', branchCount, 'es')}, which need to be resolved manually.
+The target repository contains conflict ${this.pluralize(
+        'branch',
+        branchCount,
+        'es',
+      )}, which need to be resolved manually.
 
 The conflict ${this.pluralize('branch', branchCount, 'es')}:
 
@@ -298,7 +333,7 @@ Please follow the steps to resolve the conflicts:
     const fullHash = hash;
 
     // Switch to target branch
-    let isCurBranch = hash.substr(0, 1) === '*';
+    const isCurBranch = hash.substr(0, 1) === '*';
     hash = this.split(hash, '#')[1];
     let parent: string;
     [hash, parent] = this.split(hash, ' ');
@@ -319,25 +354,39 @@ Please follow the steps to resolve the conflicts:
     }
     sourceBranches = this.moveToFirst(sourceBranches, this.options.squashBaseBranch);
 
-    let skipped = 0;
+    const skipped = 0;
     const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
 
-    for (let key in sourceBranches) {
-      let sourceBranch: string = sourceBranches[key];
+    for (const key in sourceBranches) {
+      const sourceBranch: string = sourceBranches[key];
       await this.syncSquashBranch(sourceBranch, targetBranches);
 
-      this.tickProgressBar(progressBar)
+      this.tickProgressBar(progressBar);
     }
   }
 
   private async syncSquashBranch(sourceBranch: string, targetBranches: string[]) {
-    let localBranch = this.toLocalBranch(sourceBranch);
+    const localBranch = this.toLocalBranch(sourceBranch);
     const sourceBranchHash = await this.source.run(['rev-parse', sourceBranch]);
 
     if (_.includes(targetBranches, sourceBranch)) {
-      let squashLogs = {};
-      const sourceLogs = await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target, this.targetPaths);
-      const targetLogs = await this.getLogs(this.target, [sourceBranch], this.targetPaths, squashLogs, this.source, this.sourcePaths);
+      const squashLogs = {};
+      const sourceLogs = await this.getLogs(
+        this.source,
+        [sourceBranch],
+        this.sourcePaths,
+        {},
+        this.target,
+        this.targetPaths,
+      );
+      const targetLogs = await this.getLogs(
+        this.target,
+        [sourceBranch],
+        this.targetPaths,
+        squashLogs,
+        this.source,
+        this.sourcePaths,
+      );
 
       if (localBranch === this.options.squashBaseBranch) {
         // Record squash range from exists branch exists commits
@@ -356,7 +405,7 @@ Please follow the steps to resolve the conflicts:
       }
 
       const [hash, sourceStartHash] = this.parseHash(hashes[hashes.length - 1]);
-      await this.target.run((['checkout', localBranch]));
+      await this.target.run(['checkout', localBranch]);
       const newHash = await this.createSquashCommit(sourceStartHash, sourceBranchHash, localBranch);
 
       if (localBranch === this.options.squashBaseBranch) {
@@ -370,7 +419,14 @@ Please follow the steps to resolve the conflicts:
     const newHash = await this.createNewSquashBranch(sourceBranch);
     if (localBranch === this.options.squashBaseBranch) {
       // Record squash range from new branch new commit
-      this.targetSquashes[newHash] = await await this.getLogs(this.source, [sourceBranch], this.sourcePaths, {}, this.target, this.targetPaths);
+      this.targetSquashes[newHash] = await await this.getLogs(
+        this.source,
+        [sourceBranch],
+        this.sourcePaths,
+        {},
+        this.target,
+        this.targetPaths,
+      );
     }
   }
 
@@ -390,7 +446,7 @@ Please follow the steps to resolve the conflicts:
     return await this.createSquashCommit(commitStartHash, commitEndHash, sourceBranch, true);
   }
 
-  private async createSquashCommit(startHash: string, endHash: string, branch: string, isNew: boolean = false) {
+  private async createSquashCommit(startHash: string, endHash: string, branch: string, isNew = false) {
     // merge
     if (startHash.includes(' ')) {
       const parents = startHash.split(' ');
@@ -404,13 +460,10 @@ Please follow the steps to resolve the conflicts:
     }
 
     // Create patch
-    const args = this.withPaths([
-      'diff',
-      '--stat',
-      '--binary',
-      '--color=never',
-      startHash + '..' + endHash,
-    ], this.sourcePaths);
+    const args = this.withPaths(
+      ['diff', '--stat', '--binary', '--color=never', `${startHash}..${endHash}`],
+      this.sourcePaths,
+    );
 
     let patch = await this.source.run(args);
 
@@ -426,7 +479,7 @@ Please follow the steps to resolve the conflicts:
     // error: corrupt binary patch at line xxx:
     // """
     // @see sync src/Symfony/Component/Form/
-    patch += "\n\n";
+    patch += '\n\n';
 
     // Apply patch
     let patchArgs = [
@@ -436,13 +489,10 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    patchArgs.push('-p' + this.getPathDepth(this.options.sourceDir));
+    patchArgs.push(`-p${this.getPathDepth(this.options.sourceDir)}`);
 
     if (this.options.targetDir !== './') {
-      patchArgs = patchArgs.concat([
-        '--directory',
-        this.options.targetDir,
-      ]);
+      patchArgs = patchArgs.concat(['--directory', this.options.targetDir]);
     }
 
     try {
@@ -455,12 +505,7 @@ Please follow the steps to resolve the conflicts:
 
         if (!isNew) {
           const conflictBranch = this.getConflictBranchName(branch);
-          await this.target.run([
-            'checkout',
-            '-b',
-            conflictBranch,
-            branch,
-          ]);
+          await this.target.run(['checkout', '-b', conflictBranch, branch]);
           this.conflictBranches.push(branch);
         }
       }
@@ -478,7 +523,7 @@ Please follow the steps to resolve the conflicts:
       'commit',
       '--allow-empty',
       '-am',
-      `chore(sync): squash commit from ${startHash} to ${endHash}`
+      `chore(sync): squash commit from ${startHash} to ${endHash}`,
     ]);
     return await this.target.run(['rev-parse', 'HEAD']);
   }
@@ -492,7 +537,7 @@ Please follow the steps to resolve the conflicts:
     let include = this.options.includeTags;
     if (this.options.removeTagPrefix) {
       include = this.toArray(include);
-      include.push(this.options.removeTagPrefix + '*');
+      include.push(`${this.options.removeTagPrefix}*`);
     }
 
     let filterTags: Tags = this.filterObjectKey(newTags, include, this.options.excludeTags);
@@ -508,7 +553,7 @@ Please follow the steps to resolve the conflicts:
       theme.info(filteredCount.toString()),
       theme.info((total - newCount).toString()),
       theme.info(total.toString()),
-      theme.info(_.size(targetTags).toString())
+      theme.info(_.size(targetTags).toString()),
     );
     return filterTags;
   }
@@ -518,7 +563,7 @@ Please follow the steps to resolve the conflicts:
       return tags;
     }
 
-    let newTags: Tags = {};
+    const newTags: Tags = {};
     Object.keys(tags).forEach((tag: string) => {
       const newTag = addTagPrefix + tag.substring(removeTagPrefix.length);
       newTags[newTag] = tags[tag];
@@ -530,7 +575,7 @@ Please follow the steps to resolve the conflicts:
   private async filterEmptyLogs(logs: StringStringMap) {
     const newLogs: StringStringMap = {};
     for (let hash in logs) {
-      let fullHash = hash;
+      const fullHash = hash;
 
       hash = this.split(hash, '#')[1];
       let parent: string;
@@ -542,13 +587,7 @@ Please follow the steps to resolve the conflicts:
         continue;
       }
 
-      let result = await this.target.run([
-        'diff-tree',
-        '--no-commit-id',
-        '--name-only',
-        '-r',
-        targetHash,
-      ]);
+      const result = await this.target.run(['diff-tree', '--no-commit-id', '--name-only', '-r', targetHash]);
       if (result) {
         newLogs[fullHash] = logs[fullHash];
       }
@@ -569,16 +608,16 @@ Please follow the steps to resolve the conflicts:
     let skipped = 0;
     const progressBar = this.createProgressBar(Object.keys(sourceBranches).length);
 
-    for (let key in sourceBranches) {
-      let sourceBranch: string = sourceBranches[key];
-      let localBranch = this.toLocalBranch(sourceBranch);
+    for (const key in sourceBranches) {
+      const sourceBranch: string = sourceBranches[key];
+      const localBranch = this.toLocalBranch(sourceBranch);
 
       if (!_.includes(targetBranches, sourceBranch)) {
         const result = await this.createOrUpdateTargetBranch(sourceBranch);
         if (!result) {
           skipped++;
         }
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       }
 
@@ -587,22 +626,18 @@ Please follow the steps to resolve the conflicts:
       if (!targetHash) {
         skipped++;
         await this.logCommitNotFound(sourceHash, sourceBranch);
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       }
 
       const targetBranchHash = await this.target.run(['rev-parse', localBranch]);
       if (targetBranchHash === targetHash) {
         log.debug(`Branch "${localBranch}" is up to date, skipping`);
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       }
 
-      const result = await this.target.run([
-        'merge-base',
-        targetBranchHash,
-        targetHash,
-      ]);
+      const result = await this.target.run(['merge-base', targetBranchHash, targetHash]);
 
       if (result === targetBranchHash) {
         // 新的分支包含老的，说明没有冲突，直接更新老分支
@@ -612,25 +647,25 @@ Please follow the steps to resolve the conflicts:
         }
       } else if (result === targetHash) {
         // 目标分支有新的提交，不用处理
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       } else {
         // or this.conflictBranches.includes(localBranch)
         if (localBranch === this.currentBranch) {
-          this.tickProgressBar(progressBar)
+          this.tickProgressBar(progressBar);
           continue;
         }
 
         await this.target.run(['branch', '-f', this.getConflictBranchName(localBranch), targetHash]);
         this.conflictBranches.push(localBranch);
       }
-      this.tickProgressBar(progressBar)
+      this.tickProgressBar(progressBar);
     }
 
     log.info(
       'Synced %s, skipped %s branches.',
       theme.info((_.size(sourceBranches) - skipped).toString()),
-      theme.info(skipped.toString())
+      theme.info(skipped.toString()),
     );
   }
 
@@ -638,7 +673,6 @@ Please follow the steps to resolve the conflicts:
     const sourceHash = await this.source.run(['rev-parse', sourceBranch]);
     const targetHash = await this.findTargetTagHash(sourceHash);
     if (targetHash) {
-
       // Cannot update the current branch, so use reset instead
       sourceBranch = this.toLocalBranch(sourceBranch);
       if (sourceBranch === this.currentBranch) {
@@ -647,18 +681,19 @@ Please follow the steps to resolve the conflicts:
           // otherwise, target commits that not in the source will be lost
           await this.target.run(['reset', '--hard', targetHash]);
         } else {
-          log.info('Target repository has commits that have not been sync back to source repository, ' +
-            `do not update "${sourceBranch}" branch to avoid lost commits`);
+          log.info(
+            'Target repository has commits that have not been sync back to source repository, ' +
+              `do not update "${sourceBranch}" branch to avoid lost commits`,
+          );
         }
       } else {
         await this.target.run(['branch', '-f', sourceBranch, targetHash]);
       }
 
       return true;
-    } else {
-      await this.logCommitNotFound(sourceHash, sourceBranch);
-      return false;
     }
+    await this.logCommitNotFound(sourceHash, sourceBranch);
+    return false;
   }
 
   protected async findTargetTagHash(sourceHash: string) {
@@ -676,12 +711,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async logCommitNotFound(sourceHash: string, sourceBranch: string) {
-    const result = await this.source.run([
-      'log',
-      '--format=%ct %s',
-      '-1',
-      sourceHash,
-    ]);
+    const result = await this.source.run(['log', '--format=%ct %s', '-1', sourceHash]);
     const [date, message] = this.explode(' ', result, 2);
     log.warn(`Commit not found in target repository, branch: ${sourceBranch}, date: ${date}, subject: ${message}`);
   }
@@ -695,6 +725,11 @@ Please follow the steps to resolve the conflicts:
     let parent: string;
     [hash, parent] = this.split(hash, ' ');
 
+    // TODO multi roots are not supported, fallback to current branch
+    if (!parent && !isCurBranch) {
+      isCurBranch = true;
+    }
+
     // Use Git empty tree hash as first commit's parent
     if (!parent) {
       parent = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
@@ -707,11 +742,9 @@ Please follow the steps to resolve the conflicts:
       branch = parents[0];
       await this.checkoutTempBranch(branch);
       this.currentBranch = branch;
-    } else {
-      if (this.currentBranch !== this.defaultBranch) {
-        await this.target.run(['checkout', this.defaultBranch]);
-        this.currentBranch = this.defaultBranch;
-      }
+    } else if (this.currentBranch !== this.defaultBranch) {
+      await this.target.run(['checkout', this.defaultBranch]);
+      this.currentBranch = this.defaultBranch;
     }
 
     if (parents.length > 1) {
@@ -720,20 +753,23 @@ Please follow the steps to resolve the conflicts:
     }
 
     // Create patch
-    const args = this.withPaths([
-      'log',
-      '-p',
-      '--reverse',
-      '-m',
-      '--stat',
-      '--binary',
-      '-1',
-      '--color=never',
-      // Commit body may contains *diff like* codes, which cause git-apply fail
-      // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
-      '--format=%n',
-      hash,
-    ], this.sourcePaths);
+    const args = this.withPaths(
+      [
+        'log',
+        '-p',
+        '--reverse',
+        '-m',
+        '--stat',
+        '--binary',
+        '-1',
+        '--color=never',
+        // Commit body may contains *diff like* codes, which cause git-apply fail
+        // @see \GitSyncTest\Command\SyncCommandTest::testCommitBodyContainsDiff
+        '--format=%n',
+        hash,
+      ],
+      this.sourcePaths,
+    );
 
     let patch = await this.source.run(args);
 
@@ -749,7 +785,7 @@ Please follow the steps to resolve the conflicts:
     // error: corrupt binary patch at line xxx:
     // """
     // @see sync src/Symfony/Component/Form/
-    patch += "\n\n";
+    patch += '\n\n';
 
     // Apply patch
     let patchArgs = [
@@ -759,13 +795,10 @@ Please follow the steps to resolve the conflicts:
       '--ignore-whitespace',
     ];
 
-    patchArgs.push('-p' + this.getPathDepth(this.options.sourceDir));
+    patchArgs.push(`-p${this.getPathDepth(this.options.sourceDir)}`);
 
     if (this.options.targetDir !== './') {
-      patchArgs = patchArgs.concat([
-        '--directory',
-        this.options.targetDir,
-      ]);
+      patchArgs = patchArgs.concat(['--directory', this.options.targetDir]);
     }
 
     try {
@@ -781,9 +814,8 @@ Please follow the steps to resolve the conflicts:
           await this.syncToConflictBranch(hash);
           await this.applyPatch(fullHash);
           return;
-        } else {
-          await this.syncToConflictBranch(hash);
         }
+        await this.syncToConflictBranch(hash);
       }
     }
 
@@ -796,22 +828,18 @@ Please follow the steps to resolve the conflicts:
 
     if (!this.isConflict) {
       // 找到冲突前的记录，从这里开始创建branch
-      const log = await this.source.run(this.withPaths([
-        'log',
-        '--format=%ct %B',
-        '-1',
-        '--skip=1',
-        hash,
-      ], this.sourcePaths));
+      const log = await this.source.run(
+        this.withPaths(['log', '--format=%ct %B', '-1', '--skip=1', hash], this.sourcePaths),
+      );
 
       let targetHash;
       if (log) {
         const [date, message] = this.explode(' ', log, 2);
-        const shortMessage = this.explode("\n", message, 2)[0];
+        const shortMessage = this.explode('\n', message, 2)[0];
         targetHash = await this.target.run([
           'log',
-          '--after=' + date,
-          '--before=' + date,
+          `--after=${date}`,
+          `--before=${date}`,
           '--grep',
           shortMessage,
           '--fixed-strings',
@@ -829,12 +857,7 @@ Please follow the steps to resolve the conflicts:
       await this.target.run(['reset', '--hard', 'HEAD']);
       const branch: string = await this.target.getBranch();
       this.conflictBranch = this.getConflictBranchName(branch);
-      await this.target.run([
-        'checkout',
-        '-b',
-        this.conflictBranch,
-        targetHash,
-      ]);
+      await this.target.run(['checkout', '-b', this.conflictBranch, targetHash]);
       this.isConflict = true;
       this.conflictBranches.push(branch);
     }
@@ -843,15 +866,11 @@ Please follow the steps to resolve the conflicts:
   protected async overwrite(hash: string, parents: string[]) {
     log.debug(`Start overwrite files from ${hash} to ${parents}`);
 
-    let results = [];
-    for (let i in parents) {
-      let result = await this.source.run(this.withPaths([
-        'diff-tree',
-        '--name-status',
-        '-r',
-        parents[i],
-        hash,
-      ], this.sourcePaths));
+    const results = [];
+    for (const i in parents) {
+      const result = await this.source.run(
+        this.withPaths(['diff-tree', '--name-status', '-r', parents[i], hash], this.sourcePaths),
+      );
       if (result) {
         results.push(result);
       }
@@ -882,39 +901,34 @@ Please follow the steps to resolve the conflicts:
     });
 
     // @link https://stackoverflow.com/a/39948726
-    const tempDir = this.target.dir + '/.git/gitsync-worktree';
+    const tempDir = `${this.target.dir}/.git/gitsync-worktree`;
     const workTree = await this.getWorkTree(this.source, tempDir);
-    await workTree.run([
-      'checkout',
-      '-f',
-      hash,
-      '--',
-    ].concat(updateFiles));
+    await workTree.run(['checkout', '-f', hash, '--'].concat(updateFiles));
 
-    const targetFullDir = this.target.dir + '/' + this.options.targetDir;
+    const targetFullDir = `${this.target.dir}/${this.options.targetDir}`;
 
     // Delete first and then update, so that when the change is renamed,
     // ensure that the file will not be deleted.
-    removeFiles.forEach((file) => {
-      const targetFile = targetFullDir + '/' + file.substr(removeLength);
+    removeFiles.forEach(file => {
+      const targetFile = `${targetFullDir}/${file.substr(removeLength)}`;
       if (fs.existsSync(targetFile)) {
         unlink(targetFile);
       }
     });
 
-    let targetFiles = [];
-    for (let key in updateFiles) {
-      let file = updateFiles[key];
-      let targetFile = file.substr(removeLength);
+    const targetFiles = [];
+    for (const key in updateFiles) {
+      const file = updateFiles[key];
+      const targetFile = file.substr(removeLength);
 
       targetFiles.push(path.join(this.options.targetDir, targetFile));
-      let target = targetFullDir + '/' + targetFile;
+      const target = `${targetFullDir}/${targetFile}`;
 
-      let dir = path.dirname(target);
+      const dir = path.dirname(target);
       if (!fs.existsSync(dir)) {
         await mkdir(path.dirname(target), {recursive: true});
       }
-      await rename(tempDir + '/' + file, target);
+      await rename(`${tempDir}/${file}`, target);
     }
 
     await this.target.run(['add'].concat(targetFiles));
@@ -923,10 +937,13 @@ Please follow the steps to resolve the conflicts:
   protected parseChangedFiles(result: string) {
     const files: StringStringMap = {};
 
-    result.trim().split("\n").forEach((line: string) => {
-      const [status, file] = line.split("\t");
-      files[file] = status.substr(0, 1);
-    });
+    result
+      .trim()
+      .split('\n')
+      .forEach((line: string) => {
+        const [status, file] = line.split('\t');
+        files[file] = status.substr(0, 1);
+      });
 
     return files;
   }
@@ -944,8 +961,8 @@ Please follow the steps to resolve the conflicts:
 
     let skipped = 0;
     const progressBar = this.createProgressBar(filteredCount);
-    for (let name in filterTags) {
-      let tag: Tag = filterTags[name];
+    for (const name in filterTags) {
+      const tag: Tag = filterTags[name];
       let targetHash = await this.findTargetTagHash(tag.hash);
 
       if (!targetHash) {
@@ -953,53 +970,34 @@ Please follow the steps to resolve the conflicts:
       }
 
       if (!targetHash) {
-        const result = await this.source.run([
-          'log',
-          '--format=%ct %s',
-          '-1',
-          tag.hash,
-        ]);
+        const result = await this.source.run(['log', '--format=%ct %s', '-1', tag.hash]);
         const [date, message] = this.explode(' ', result, 2);
 
-        log.warn(`Commit not found in target repository, tag: ${name}, date: ${date}, subject: ${message}`)
+        log.warn(`Commit not found in target repository, tag: ${name}, date: ${date}, subject: ${message}`);
         skipped++;
-        this.tickProgressBar(progressBar)
+        this.tickProgressBar(progressBar);
         continue;
       }
 
       // 如果有annotation，同步过去
-      const args = [
-        'tag',
-        name,
-        targetHash,
-      ];
+      const args = ['tag', name, targetHash];
       if (tag.annotated) {
         args.push('-m');
-        args.push(await this.source.run([
-          'tag',
-          '-l',
-          '--format=%(contents)',
-          name,
-        ]));
+        args.push(await this.source.run(['tag', '-l', '--format=%(contents)', name]));
       }
       await this.target.run(args);
-      this.tickProgressBar(progressBar)
+      this.tickProgressBar(progressBar);
     }
 
     log.info(
       'Synced %s, skipped %s tags.',
       theme.info((filteredCount - skipped).toString()),
-      theme.info(skipped.toString())
+      theme.info(skipped.toString()),
     );
   }
 
   private async findDirHash(sourceHash: string) {
-    return await this.source.run(this.withPaths([
-      'log',
-      '--format=%h',
-      '-1',
-      sourceHash,
-    ], this.sourcePaths));
+    return await this.source.run(this.withPaths(['log', '--format=%h', '-1', sourceHash], this.sourcePaths));
   }
 
   private async findTargetHashFromSquashLogs(sourceHash: string) {
@@ -1008,9 +1006,9 @@ Please follow the steps to resolve the conflicts:
       return false;
     }
 
-    for (let targetHash in this.targetSquashes) {
-      for (let logHash in this.targetSquashes[targetHash]) {
-        if (logHash.includes('#' + sourceDirHash)) {
+    for (const targetHash in this.targetSquashes) {
+      for (const logHash in this.targetSquashes[targetHash]) {
+        if (logHash.includes(`#${sourceDirHash}`)) {
           return targetHash;
         }
       }
@@ -1020,7 +1018,7 @@ Please follow the steps to resolve the conflicts:
 
   protected async getTags(repo: Git) {
     // Check if the repo has tag, because "show-ref" will return error code 1 when no tags
-    if (!await repo.run(['rev-list', '-n', '1', '--tags'])) {
+    if (!(await repo.run(['rev-list', '-n', '1', '--tags']))) {
       return {};
     }
 
@@ -1029,7 +1027,7 @@ Please follow the steps to resolve the conflicts:
 
     // Example: ada25d8079f998939893a9ec33f4006d99a19554 refs/tags/v1.2.0^{}
     const regex = /^(.+?) refs\/tags\/(.+?)(\^\{\})?$/;
-    output.split("\n").forEach((row: string) => {
+    output.split('\n').forEach((row: string) => {
       const matches = regex.exec(row);
       tags[matches[2]] = {
         hash: matches[1],
@@ -1049,12 +1047,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async checkoutTempBranch(branch: string) {
-    const name = 'sync-' + branch;
-    await this.target.run(['checkout',
-      '-B',
-      name,
-      await this.getTargetHash(branch),
-    ]);
+    const name = `sync-${branch}`;
+    await this.target.run(['checkout', '-B', name, await this.getTargetHash(branch)]);
     this.tempBranches[name] = true;
   }
 
@@ -1078,16 +1072,11 @@ Please follow the steps to resolve the conflicts:
     // because git will convert commit message "a\nb" to "a b" as subject,
     // so search by "a b" won't match the log.
     // @see SyncCommandTest::testSearchCommitMessageContainsLineBreak
-    const log = await this.source.run([
-      'log',
-      '--format=%ct %at %B',
-      '-1',
-      hash,
-    ]);
+    const log = await this.source.run(['log', '--format=%ct %at %B', '-1', hash]);
 
     let [committerDate, authorDate, message] = this.explode(' ', log, 3);
-    if (message.includes("\n")) {
-      message = this.split(message, "\n")[0];
+    if (message.includes('\n')) {
+      message = this.split(message, '\n')[0];
     }
 
     const match = this.parseSquashMessage(message);
@@ -1097,21 +1086,24 @@ Please follow the steps to resolve the conflicts:
 
     // Here we assume that a person will not commit the same message in the same second.
     // This is the core logic to sync commits between two repositories.
-    let target = await this.target.run([
-      'log',
-      '--after=' + committerDate,
-      '--before=' + committerDate,
-      '--grep',
-      message,
-      '--fixed-strings',
-      '--format=%H',
-      '--all',
-    ], {
-      // Target repository may not have any commits, so we mute the error.
-      mute: true,
-    });
+    let target = await this.target.run(
+      [
+        'log',
+        `--after=${committerDate}`,
+        `--before=${committerDate}`,
+        '--grep',
+        message,
+        '--fixed-strings',
+        '--format=%H',
+        '--all',
+      ],
+      {
+        // Target repository may not have any commits, so we mute the error.
+        mute: true,
+      },
+    );
 
-    if (!target || target.includes("\n")) {
+    if (!target || target.includes('\n')) {
       // Case 1: committer date may be changed by rebase.
       //
       // Case 2: git log assumes that commits are sorted by date descend,
@@ -1122,18 +1114,11 @@ Please follow the steps to resolve the conflicts:
       // Case 3: rebase causes same commit subject have same commit time, so target will contains `\n`
       //
       // So we need to remove the date limit and search again.
-      const logs = await this.target.run([
-        'log',
-        '--grep',
-        message,
-        '--fixed-strings',
-        '--format=%H %at',
-        '--all',
-      ], {
+      const logs = await this.target.run(['log', '--grep', message, '--fixed-strings', '--format=%H %at', '--all'], {
         mute: true,
       });
       const hashes: string[] = [];
-      logs.split('\n').forEach((log) => {
+      logs.split('\n').forEach(log => {
         const [hash, date] = log.split(' ');
         if (date === authorDate) {
           hashes.push(hash);
@@ -1142,8 +1127,10 @@ Please follow the steps to resolve the conflicts:
       target = hashes.join('\n');
     }
 
-    if (target.includes("\n")) {
-      throw new Error(`Expected to return one commit, but returned more than one commit with the same message in the same second, committer date: ${committerDate}, message: ${message}: hashes: ${target}`);
+    if (target.includes('\n')) {
+      throw new Error(
+        `Expected to return one commit, but returned more than one commit with the same message in the same second, committer date: ${committerDate}, message: ${message}: hashes: ${target}`,
+      );
     }
 
     this.targetHashes[hash] = target;
@@ -1151,7 +1138,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected async mergeParents(hash: string, parents: string[]) {
-    let args = [
+    const args = [
       'merge',
       '--no-ff',
       // File may be changed after merging (no matter success or fail), before committing，
@@ -1159,7 +1146,7 @@ Please follow the steps to resolve the conflicts:
       '--no-commit',
     ];
 
-    for (let i in parents) {
+    for (const i in parents) {
       args.push(await this.getTargetHash(parents[i]));
     }
 
@@ -1181,22 +1168,21 @@ Please follow the steps to resolve the conflicts:
     const commit = await this.source.run(['show', '-s', '--format=%an|%ae|%ai|%cn|%ce|%ci|%B', hash]);
     // TODO split
     const parts: string[] = this.explode('|', commit, 7);
-    await this.target.run([
-        'commit',
-        '--allow-empty',
-        '-am',
-        parts[6],
-      ], {
-        env: Object.assign(this.options.preserveCommit ? {
-          GIT_AUTHOR_NAME: parts[0],
-          GIT_AUTHOR_EMAIL: parts[1],
-          GIT_AUTHOR_DATE: parts[2],
-          GIT_COMMITTER_NAME: parts[3],
-          GIT_COMMITTER_EMAIL: parts[4],
-          GIT_COMMITTER_DATE: parts[5]
-        } : {}, this.env)
-      }
-    );
+    await this.target.run(['commit', '--allow-empty', '-am', parts[6]], {
+      env: Object.assign(
+        this.options.preserveCommit
+          ? {
+              GIT_AUTHOR_NAME: parts[0],
+              GIT_AUTHOR_EMAIL: parts[1],
+              GIT_AUTHOR_DATE: parts[2],
+              GIT_COMMITTER_NAME: parts[3],
+              GIT_COMMITTER_EMAIL: parts[4],
+              GIT_COMMITTER_DATE: parts[5],
+            }
+          : {},
+        this.env,
+      ),
+    });
   }
 
   protected async handleConflict(hash: string, parents: string[]) {
@@ -1207,10 +1193,18 @@ Please follow the steps to resolve the conflicts:
     }
   }
 
-  protected async getLogs(repo: Git, revisions: string[], paths: string[], squashLogs: any = {}, targetRepo: Git, targetPaths: string[], logCallback: Function = null) {
+  protected async getLogs(
+    repo: Git,
+    revisions: string[],
+    paths: string[],
+    squashLogs: any = {},
+    targetRepo: Git,
+    targetPaths: string[],
+    logCallback: Function = null,
+  ) {
     // Check if the repo has commit, because "log" will return error code 128
     // with message "fatal: your current branch 'master' does not have any commits yet" when no commits
-    if (!await repo.run(['rev-list', '-n', '1', '--all'])) {
+    if (!(await repo.run(['rev-list', '-n', '1', '--all']))) {
       return {};
     }
 
@@ -1226,14 +1220,11 @@ Please follow the steps to resolve the conflicts:
     ];
 
     if (this.options.after) {
-      args = args.concat([
-        '--after',
-        this.options.after.toString()
-      ]);
+      args = args.concat(['--after', this.options.after.toString()]);
     }
 
     if (this.options.maxCount) {
-      args.push('-' + this.options.maxCount);
+      args.push(`-${this.options.maxCount}`);
     }
 
     if (revisions.length) {
@@ -1245,7 +1236,7 @@ Please follow the steps to resolve the conflicts:
     // Do not specify root directory, so that logs will contain *empty* commits (include merges)
     args = this.withPaths(args, paths);
 
-    let result = await repo.run(args);
+    const result = await repo.run(args);
     if (!result) {
       return {};
     }
@@ -1270,7 +1261,14 @@ Please follow the steps to resolve the conflicts:
       if (matches) {
         log.debug(`Expand squashed commits from ${matches[1]} to ${matches[2]}`);
         const [squashHash] = this.parseHash(hash);
-        squashLogs[squashHash] = await this.getLogs(targetRepo, [matches[1] + '..' + matches[2]], targetPaths, squashLogs, repo, paths);
+        squashLogs[squashHash] = await this.getLogs(
+          targetRepo,
+          [`${matches[1]}..${matches[2]}`],
+          targetPaths,
+          squashLogs,
+          repo,
+          paths,
+        );
         logs = Object.assign(logs, squashLogs[squashHash]);
         continue;
       }
@@ -1292,7 +1290,11 @@ Please follow the steps to resolve the conflicts:
     }
 
     if (conflicts.length) {
-      throw new Error(`Repository "${repo.dir}" has unmerged conflict branches "${conflicts.join(', ')}", please merge or remove branches before syncing.`);
+      throw new Error(
+        `Repository "${repo.dir}" has unmerged conflict branches "${conflicts.join(
+          ', ',
+        )}", please merge or remove branches before syncing.`,
+      );
     }
 
     return this.filter(branches, this.options.includeBranches, this.options.excludeBranches);
@@ -1318,7 +1320,7 @@ Please follow the steps to resolve the conflicts:
       return array;
     }
 
-    let patterns = include.concat(exclude.map(item => '!' + item));
+    const patterns = include.concat(exclude.map(item => `!${item}`));
     if (include.length === 0) {
       patterns.unshift('**');
     }
@@ -1333,7 +1335,7 @@ Please follow the steps to resolve the conflicts:
       return object;
     }
 
-    let patterns = include.concat(exclude.map(item => '!' + item));
+    const patterns = include.concat(exclude.map(item => `!${item}`));
     if (include.length === 0) {
       patterns.unshift('**');
     }
@@ -1342,17 +1344,17 @@ Please follow the steps to resolve the conflicts:
     return keys.reduce((newObject: Record<string, any>, key: string) => {
       newObject[key] = object[key];
       return newObject;
-    }, {})
+    }, {});
   }
 
   protected async getBranches(repo: Git) {
-    let result = await repo.run(['branch', '-a']);
+    const result = await repo.run(['branch', '-a']);
     if (!result) {
       return [];
     }
 
-    let branches: string[] = [];
-    result.split("\n").forEach((name: string) => {
+    const branches: string[] = [];
+    result.split('\n').forEach((name: string) => {
       // "  remotes/origin/1.0" => "remotes/origin/1.0"
       name = name.substr(2);
 
@@ -1387,11 +1389,7 @@ Please follow the steps to resolve the conflicts:
     log = this.split(log, '#')[1];
     const hash = this.split(log, ' ')[0];
 
-    let result = await this.source.log([
-      '--format=%D',
-      '-1',
-      hash,
-    ]);
+    let result = await this.source.log(['--format=%D', '-1', hash]);
     if (result) {
       // Example:
       // 1. HEAD -> master, tag: 1.0.1, tag: 1.0.0, origin/master
@@ -1412,14 +1410,9 @@ Please follow the steps to resolve the conflicts:
       return branch;
     }
 
-    result = await this.source.run([
-      'branch',
-      '--no-color',
-      '--contains',
-      hash,
-    ]);
+    result = await this.source.run(['branch', '--no-color', '--contains', hash]);
     // Example: * master
-    let branch = this.split(result, "\n")[0];
+    const branch = this.split(result, '\n')[0];
     return branch.substr(2);
   }
 
@@ -1431,8 +1424,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected objectValueDiff(obj1: any, obj2: any): {} {
-    let result: any = {};
-    for (let key in obj1) {
+    const result: any = {};
+    for (const key in obj1) {
       if (!_.includes(obj2, obj1[key])) {
         result[key] = obj1[key];
       }
@@ -1441,8 +1434,8 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected keyDiff(obj1: any, obj2: any) {
-    let result: any = {};
-    for (let key in obj1) {
+    const result: any = {};
+    for (const key in obj1) {
       if (typeof obj2[key] === 'undefined') {
         result[key] = obj1[key];
       }
@@ -1451,7 +1444,7 @@ Please follow the steps to resolve the conflicts:
   }
 
   protected getFirstKey(obj: {}): string {
-    for (let key in obj) {
+    for (const key in obj) {
       return key;
     }
     return '';
@@ -1472,48 +1465,44 @@ Please follow the steps to resolve the conflicts:
     //   returns 1: [ 'Kevin', 'van', 'Zonneveld' ]
 
     // Here we go...
-    delimiter += ''
-    string += ''
+    delimiter += '';
+    string += '';
 
-    var s = string.split(delimiter)
+    const s = string.split(delimiter);
 
-    if (typeof limit === 'undefined') return s
+    if (typeof limit === 'undefined') return s;
 
     // Support for limit
-    if (limit === 0) limit = 1
+    if (limit === 0) limit = 1;
 
     // Positive limit
     if (limit > 0) {
       if (limit >= s.length) {
-        return s
+        return s;
       }
-      return s
-        .slice(0, limit - 1)
-        .concat([s.slice(limit - 1)
-          .join(delimiter)
-        ])
+      return s.slice(0, limit - 1).concat([s.slice(limit - 1).join(delimiter)]);
     }
 
     // Negative limit
     if (-limit >= s.length) {
-      return []
+      return [];
     }
 
-    s.splice(s.length + limit)
+    s.splice(s.length + limit);
     return s;
   }
 
-  protected pluralize(string: string, count: number, suffix: string = 's') {
-    return count === 1 ? string : (string + suffix);
+  protected pluralize(string: string, count: number, suffix = 's') {
+    return count === 1 ? string : string + suffix;
   }
 
   protected getConflictBranchName(name: string): string {
-    return name + '-gitsync-conflict';
+    return `${name}-gitsync-conflict`;
   }
 
   protected createProgressBar(total: number) {
     return new ProgressBar(':bar :current/:total :etas', {
-      total: total,
+      total,
       width: 50,
     });
   }
