@@ -1709,6 +1709,42 @@ To reset to previous HEAD:
     expect(fs.existsSync(target.getFile('ignore.txt'))).toBeFalsy();
   });
 
+  test('filter to ignore directory', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('dir/ignore.txt');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: [
+        ':^dir'
+      ]
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('dir/ignore.txt'))).toBeFalsy();
+  });
+
+  test('filter to ignore directory but keep file', async () => {
+    const source = await createRepo();
+    await source.commitFile('test.txt');
+    await source.commitFile('dir');
+
+    const target = await createRepo();
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+      filter: [
+        ':^dir/'
+      ]
+    });
+
+    expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
+    expect(fs.existsSync(target.getFile('dir'))).toBeTruthy();
+  });
+
   test('filter to ignore multi files', async () => {
     const source = await createRepo();
     await source.commitFile('test.txt');
