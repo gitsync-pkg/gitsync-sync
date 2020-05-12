@@ -683,7 +683,7 @@ Please follow the steps to resolve the conflicts:
         } else {
           log.info(
             'Target repository has commits that have not been sync back to source repository, ' +
-            `do not update "${sourceBranch}" branch to avoid lost commits`,
+              `do not update "${sourceBranch}" branch to avoid lost commits`,
           );
         }
       } else {
@@ -884,7 +884,7 @@ Please follow the steps to resolve the conflicts:
     if (this.options.sourceDir === './') {
       removeLength = 0;
     } else {
-      removeLength = this.options.sourceDir.length + 1;
+      removeLength = this.options.sourceDir.length;
     }
 
     const files: StringStringMap = this.parseChangedFiles(results.join('\n'));
@@ -1087,16 +1087,19 @@ Please follow the steps to resolve the conflicts:
     // Here we assume that a person will not commit the same message in the same second.
     // This is the core logic to sync commits between two repositories.
     let target = await this.target.run(
-      this.withPaths([
-        'log',
-        `--after=${committerDate}`,
-        `--before=${committerDate}`,
-        '--grep',
-        message,
-        '--fixed-strings',
-        '--format=%H',
-        '--all',
-      ], this.targetPaths),
+      this.withPaths(
+        [
+          'log',
+          `--after=${committerDate}`,
+          `--before=${committerDate}`,
+          '--grep',
+          message,
+          '--fixed-strings',
+          '--format=%H',
+          '--all',
+        ],
+        this.targetPaths,
+      ),
       {
         // Target repository may not have any commits, so we mute the error.
         mute: true,
@@ -1114,9 +1117,12 @@ Please follow the steps to resolve the conflicts:
       // Case 3: rebase causes same commit subject have same commit time, so target will contains `\n`
       //
       // So we need to remove the date limit and search again.
-      const logs = await this.target.run(this.withPaths(['log', '--grep', message, '--fixed-strings', '--format=%H %at', '--all'], this.targetPaths), {
-        mute: true,
-      });
+      const logs = await this.target.run(
+        this.withPaths(['log', '--grep', message, '--fixed-strings', '--format=%H %at', '--all'], this.targetPaths),
+        {
+          mute: true,
+        },
+      );
       const hashes: string[] = [];
       logs.split('\n').forEach(log => {
         const [hash, date] = log.split(' ');
@@ -1172,13 +1178,13 @@ Please follow the steps to resolve the conflicts:
       env: Object.assign(
         this.options.preserveCommit
           ? {
-            GIT_AUTHOR_NAME: parts[0],
-            GIT_AUTHOR_EMAIL: parts[1],
-            GIT_AUTHOR_DATE: parts[2],
-            GIT_COMMITTER_NAME: parts[3],
-            GIT_COMMITTER_EMAIL: parts[4],
-            GIT_COMMITTER_DATE: parts[5],
-          }
+              GIT_AUTHOR_NAME: parts[0],
+              GIT_AUTHOR_EMAIL: parts[1],
+              GIT_AUTHOR_DATE: parts[2],
+              GIT_COMMITTER_NAME: parts[3],
+              GIT_COMMITTER_EMAIL: parts[4],
+              GIT_COMMITTER_DATE: parts[5],
+            }
           : {},
         this.env,
       ),
