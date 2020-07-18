@@ -419,7 +419,7 @@ Please follow the steps to resolve the conflicts:
     const newHash = await this.createNewSquashBranch(sourceBranch);
     if (localBranch === this.options.squashBaseBranch) {
       // Record squash range from new branch new commit
-      this.targetSquashes[newHash] = await await this.getLogs(
+      this.targetSquashes[newHash] = await this.getLogs(
         this.source,
         [sourceBranch],
         this.sourcePaths,
