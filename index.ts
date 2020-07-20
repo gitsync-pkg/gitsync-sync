@@ -1,7 +1,7 @@
 import {Arguments} from 'yargs';
 import git, {Git} from 'git-cli-wrapper';
 import log from '@gitsync/log';
-import {Config} from '@gitsync/config';
+import {Config, ConfigPlugin} from '@gitsync/config';
 import theme from 'chalk-theme';
 import * as _ from 'lodash';
 import * as fs from 'fs';
@@ -11,6 +11,7 @@ import * as npmlog from 'npmlog';
 import * as ProgressBar from 'progress';
 import * as micromatch from 'micromatch';
 import * as inquirer from 'inquirer';
+import {Plugin} from './lib/plugin';
 
 const unlink = util.promisify(fs.unlink);
 const mkdir = util.promisify(fs.mkdir);
@@ -34,6 +35,7 @@ export interface SyncOptions {
   filter?: string[];
   squash?: boolean;
   squashBaseBranch?: string;
+  plugins?: ConfigPlugin[];
 }
 
 export type SyncArguments = Arguments<SyncOptions>;
@@ -45,6 +47,15 @@ export interface Tag {
 
 export interface Tags {
   [key: string]: Tag;
+}
+
+export interface Context {
+  source: Git;
+  target: Git;
+  options: SyncOptions;
+  getTargetHash: (hash: string) => Promise<string>;
+
+  [key: string]: any;
 }
 
 export interface StringStringMap {
@@ -60,6 +71,7 @@ class Sync {
     addTagPrefix: '',
     removeTagPrefix: '',
     squashBaseBranch: 'master',
+    plugins: [],
   };
 
   private initHash: string;
@@ -92,6 +104,10 @@ class Sync {
 
   private config: Config;
 
+  private plugin: Plugin;
+
+  private context: Context;
+
   private env: StringStringMap;
 
   private sourcePaths: string[] = [];
@@ -103,6 +119,8 @@ class Sync {
   async sync(options: SyncOptions) {
     this.config = new Config();
     this.initOptions(options);
+
+    this.plugin = new Plugin(this.options.plugins);
 
     this.source = git('.');
 
@@ -148,6 +166,10 @@ class Sync {
     }
 
     this.initHash = await this.target.run(['rev-list', '-n', '1', '--all']);
+
+    this.initContext();
+    await this.runPlugin('prepare');
+
     try {
       await this.syncCommits();
       await this.clean();
@@ -683,7 +705,7 @@ Please follow the steps to resolve the conflicts:
         } else {
           log.info(
             'Target repository has commits that have not been sync back to source repository, ' +
-              `do not update "${sourceBranch}" branch to avoid lost commits`,
+            `do not update "${sourceBranch}" branch to avoid lost commits`,
           );
         }
       } else {
@@ -1171,6 +1193,8 @@ Please follow the steps to resolve the conflicts:
     // Ignore untracked files
     await this.target.run(['add', '-u']);
 
+    await this.runPlugin('beforeCommit');
+
     const commit = await this.source.run(['show', '-s', '--format=%an|%ae|%ai|%cn|%ce|%ci|%B', hash]);
     // TODO split
     const parts: string[] = this.explode('|', commit, 7);
@@ -1178,13 +1202,13 @@ Please follow the steps to resolve the conflicts:
       env: Object.assign(
         this.options.preserveCommit
           ? {
-              GIT_AUTHOR_NAME: parts[0],
-              GIT_AUTHOR_EMAIL: parts[1],
-              GIT_AUTHOR_DATE: parts[2],
-              GIT_COMMITTER_NAME: parts[3],
-              GIT_COMMITTER_EMAIL: parts[4],
-              GIT_COMMITTER_DATE: parts[5],
-            }
+            GIT_AUTHOR_NAME: parts[0],
+            GIT_AUTHOR_EMAIL: parts[1],
+            GIT_AUTHOR_DATE: parts[2],
+            GIT_COMMITTER_NAME: parts[3],
+            GIT_COMMITTER_EMAIL: parts[4],
+            GIT_COMMITTER_DATE: parts[5],
+          }
           : {},
         this.env,
       ),
@@ -1511,6 +1535,19 @@ Please follow the steps to resolve the conflicts:
       total,
       width: 50,
     });
+  }
+
+  private initContext() {
+    this.context = {
+      target: this.target,
+      source: this.source,
+      options: this.options,
+      getTargetHash: this.getTargetHash.bind(this),
+    };
+  }
+
+  private async runPlugin(name: string) {
+    return await this.plugin.run(name, this.context);
   }
 
   private tickProgressBar(progressBar: ProgressBar) {
