@@ -25,7 +25,7 @@ export class Plugin {
         path = plugin;
         config = {};
       } else {
-        [path, config] = plugin;
+        [path, config = {}] = plugin;
       }
 
       const module = require(path);
