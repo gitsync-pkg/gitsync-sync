@@ -1,14 +1,24 @@
-# [0.6.0](https://github.com/twinh/gitsync/compare/@gitsync/sync@0.5.1...@gitsync/sync@0.6.0) (2020-07-21)
+## [0.6.1](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.0...v0.6.1) (2020-08-06)
+
+
+
+
+
+### Dependencies
+
+* **@gitsync/config:** upgrade from 0.6.0 to 0.6.1
+
+# [0.6.0](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.5.1...v0.6.0) (2020-07-21)
 
 
 ### Bug Fixes
 
-* add default value for plugin config ([61a1c99](https://github.com/twinh/gitsync/commit/61a1c99e5ef45776539b77c4922389a44338b89b))
+* add default value for plugin config ([f3e5650](https://github.com/gitsync-pkg/gitsync-sync/commit/f3e56503f1130df9bc3dba73f1129674bcbde252))
 
 
 ### Features
 
-* add plugin system ([cfab810](https://github.com/twinh/gitsync/commit/cfab8106437e6f6df4c80d9664c91decd6d89211))
+* add plugin system ([708dce0](https://github.com/gitsync-pkg/gitsync-sync/commit/708dce01caa1e0e0de8cc52a645d87b6111bf60a))
 
 
 
