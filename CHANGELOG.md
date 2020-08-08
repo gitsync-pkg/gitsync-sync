@@ -1,3 +1,10 @@
+## [0.6.2](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.1...v0.6.2) (2020-08-08)
+
+
+### Bug Fixes
+
+* sync fail when dir's last commit contains tag but not repo HEAD ([f361b95](https://github.com/gitsync-pkg/gitsync-sync/commit/f361b9546a1fabde023d5102a329be5a1c24b772))
+
 ## [0.6.1](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.0...v0.6.1) (2020-08-06)
 
 

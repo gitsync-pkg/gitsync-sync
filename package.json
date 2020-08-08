@@ -1,6 +1,6 @@
 {
   "name": "@gitsync/sync",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Sync commits to another repository",
   "keywords": [
     "gitsync",
