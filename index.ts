@@ -1424,6 +1424,7 @@ Please follow the steps to resolve the conflicts:
       // Example:
       // 1. HEAD -> master, tag: 1.0.1, tag: 1.0.0, origin/master
       // 2. tag: 1.0.1, tag: 1.0.0, origin/branch
+      // 3. tag: 1.0.0
       let branch = '';
       for (const ref of result.split(', ')) {
         if (ref.startsWith('tag: ')) {
@@ -1437,7 +1438,9 @@ Please follow the steps to resolve the conflicts:
         }
         break;
       }
-      return branch;
+      if (branch) {
+        return branch;
+      }
     }
 
     result = await this.source.run(['branch', '--no-color', '--contains', hash]);
