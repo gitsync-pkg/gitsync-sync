@@ -1592,7 +1592,7 @@ To reset to previous HEAD:
     });
 
     // Commit exists, wont be reset
-    expect(await target.run(['log', '--format=%s', '-1'])).toBe("Merge branch 'branch'");
+    expect(await target.run(['log', '--format=%s', '-1'])).toContain("Merge branch 'branch'");
   });
 
   test('sync branch at empty commit from sub directory will lost empty commit', async () => {
@@ -1704,7 +1704,7 @@ To reset to previous HEAD:
       target: target.dir,
       sourceDir: 'packages',
     });
-    
+
     expect(fs.existsSync(target.getFile('test.txt'))).toBeTruthy();
   });
 
