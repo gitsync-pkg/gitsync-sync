@@ -1,3 +1,10 @@
+## [0.6.3](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.2...v0.6.3) (2021-03-23)
+
+
+### Bug Fixes
+
+* **sync:** Checkout remote branch at remote hash, instead of HEAD(master) ([41eef31](https://github.com/gitsync-pkg/gitsync-sync/commit/41eef31ba0e993f5d9b8868debe31adde56ee461))
+
 ## [0.6.2](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.1...v0.6.2) (2020-08-08)
 
 
