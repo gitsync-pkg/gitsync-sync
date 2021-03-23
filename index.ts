@@ -289,7 +289,14 @@ To reset to previous HEAD:
 
       if (this.currentBranch && targetBranch !== this.defaultBranch) {
         if (!targetBranches.includes(this.defaultBranch)) {
-          await this.target.run(['checkout', '-b', this.defaultBranch]);
+
+          if (targetBranches.includes('origin/' + this.defaultBranch)) {
+            // Checkout remote branch at remote hash, instead of HEAD(master)
+            await this.target.run(['checkout', '-b', this.defaultBranch, 'origin/' + this.defaultBranch])
+          } else {
+            await this.target.run(['checkout', '-b', this.defaultBranch]);
+          }
+
         } else {
           await this.target.run(['checkout', this.defaultBranch]);
         }

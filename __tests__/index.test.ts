@@ -14,6 +14,7 @@ import Sync, {SyncOptions} from "..";
 import git, {Git} from "git-cli-wrapper";
 import {Config} from "@gitsync/config";
 import log from '@gitsync/log';
+import * as tmp from "tmp-promise";
 
 const sync = async (source: Git, options: SyncOptions, instance: Sync = null) => {
   changeDir(source);
@@ -538,6 +539,44 @@ describe('sync command', () => {
     await target.run(['checkout', 'branch']);
     expect(fs.existsSync(target.getFile('master-2.txt'))).toBeFalsy();
     expect(fs.existsSync(target.getFile('branch-2.txt'))).toBeTruthy();
+  });
+
+  test('sync remote branch should create branch from origin', async () => {
+    const sourceBare = await createRepo(true);
+    const source = await createRepo();
+    await source.run(['remote', 'add', 'origin', sourceBare.dir]);
+
+    await source.commitFile('test.txt');
+    await source.run(['push', '-u', 'origin', 'master']);
+
+    await source.run(['checkout', '-b', 'develop']);
+    await source.commitFile('test2.txt');
+    await source.run(['push', '-u', 'origin', 'develop']);
+
+    const targetBare = await createRepo(true);
+    const target = await createRepo();
+    await target.run(['remote', 'add', 'origin', targetBare.dir]);
+
+    await sync(source, {
+      target: target.dir,
+      sourceDir: '.',
+    });
+    await target.run(['push', '--all', 'origin']);
+
+    await source.commitFile('test3.txt');
+
+    // Clone a new repo, the HEAD is master
+    const target2 = git((await tmp.dir()).path);
+    await target2.run(['clone', targetBare.dir, '.']);
+
+    // Should create develop branch from origin/develop, instead of HEAD(master)
+    await sync(source, {
+      target: target2.dir,
+      sourceDir: '.',
+    });
+    await target2.run(['push', '--all', 'origin']);
+
+    expect(await target2.run(['log', '-n', '1', 'develop'])).toContain('add test3.txt');
   });
 
   test('preserve-commit argument is true', async () => {
