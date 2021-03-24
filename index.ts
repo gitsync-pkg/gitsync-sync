@@ -296,6 +296,7 @@ To reset to previous HEAD:
           } else {
             await this.target.run(['checkout', '-b', this.defaultBranch]);
           }
+          targetBranches.push(this.defaultBranch);
 
         } else {
           await this.target.run(['checkout', this.defaultBranch]);
@@ -639,7 +640,6 @@ Please follow the steps to resolve the conflicts:
 
     for (const key in sourceBranches) {
       const sourceBranch: string = sourceBranches[key];
-      const localBranch = this.toLocalBranch(sourceBranch);
 
       if (!_.includes(targetBranches, sourceBranch)) {
         const result = await this.createOrUpdateTargetBranch(sourceBranch);
@@ -655,6 +655,14 @@ Please follow the steps to resolve the conflicts:
       if (!targetHash) {
         skipped++;
         await this.logCommitNotFound(sourceHash, sourceBranch);
+        this.tickProgressBar(progressBar);
+        continue;
+      }
+
+      const localBranch = this.toLocalBranch(sourceBranch);
+      if (!targetBranches.includes(localBranch)) {
+        skipped++;
+        log.debug(`Target doesnt have branch "${localBranch}", skipping`);
         this.tickProgressBar(progressBar);
         continue;
       }

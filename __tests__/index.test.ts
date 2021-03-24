@@ -2291,4 +2291,43 @@ chore(sync): squash commits from 4b825dc642cb6eb9a060e54bf8d69288fbee4904 to ${s
 
     expect(fs.existsSync(target.getFile('test.txt'))).toBe(true);
   });
+
+  test('update branch should ignore non-existent branch', async () => {
+    const sourceBare = await createRepo(true);
+    const source = await createRepo();
+    await source.run(['remote', 'add', 'origin', sourceBare.dir]);
+
+    await source.commitFile('test.txt');
+    await source.run(['checkout', '-b', 'develop']);
+    await source.commitFile('test2.txt');
+    await source.run(['push', '--all', 'origin']);
+    await source.run(['checkout', 'master']);
+
+    const target = await createRepo();
+    const targetDir = path.resolve(target.dir);
+    await sync(source, {
+      target: targetDir,
+      sourceDir: '.',
+    });
+
+    const targetBare = await createRepo(true);
+    await target.run(['remote', 'add', 'origin', targetBare.dir]);
+    await target.run(['push', '--all', 'origin']);
+
+    // Key 1: The last commit is master, so the "develop" branch will not be created before synchronization
+    await source.commitFile('test3.txt');
+
+    // Key 2: Both dont have "develop" branch but have "origin/develop"
+    await source.run(['branch', '-D', 'develop']);
+    await target.run(['branch', '-D', 'develop']);
+
+    // Result: should not call "git rev-parse develop"
+    await sync(source, {
+      target: targetDir,
+      sourceDir: '.',
+    });
+
+    const message = logMessage();
+    expect(message).toContain('Target doesnt have branch "develop", skipping');
+  });
 });
