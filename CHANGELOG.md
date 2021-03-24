@@ -1,3 +1,10 @@
+## [0.6.4](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.3...v0.6.4) (2021-03-24)
+
+
+### Bug Fixes
+
+* **sync:** update branch should ignore non-existent branch ([310dcf9](https://github.com/gitsync-pkg/gitsync-sync/commit/310dcf9e5e6017d5c3db1ced431734dc8498cd8c))
+
 ## [0.6.3](https://github.com/gitsync-pkg/gitsync-sync/compare/v0.6.2...v0.6.3) (2021-03-23)
 
 
