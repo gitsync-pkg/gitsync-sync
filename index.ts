@@ -35,6 +35,7 @@ export interface SyncOptions {
   filter?: string[];
   squash?: boolean;
   squashBaseBranch?: string;
+  developBranches?: string[];
   plugins?: ConfigPlugin[];
 }
 
@@ -206,9 +207,18 @@ To reset to previous HEAD:
     this.options.filter = this.toArray(this.options.filter);
   }
 
+  private async getDevelopBranches() {
+    if (!this.options.developBranches || !this.options.developBranches.length) {
+      return [];
+    }
+    const branches = await this.getBranches(this.source);
+    return this.filter(branches, this.options.developBranches, []);
+  }
+
   protected async syncCommits() {
     const sourceBranches = await this.parseBranches(this.source);
-    const targetBranches = await this.parseBranches(this.target);
+    let targetBranches = await this.parseBranches(this.target);
+    const developBranches = await this.getDevelopBranches();
 
     let firstLog = '';
     const sourceLogs = await this.getLogs(
@@ -224,7 +234,7 @@ To reset to previous HEAD:
     );
     const targetLogs = await this.getLogs(
       this.target,
-      targetBranches,
+      this.diff(targetBranches, developBranches),
       this.targetPaths,
       {},
       this.source,
@@ -276,6 +286,12 @@ To reset to previous HEAD:
       if (!toSync) {
         return;
       }
+    }
+
+    if (developBranches.length) {
+      await this.removeDevelopBranches(developBranches);
+      // Reload to remove deleted branches
+      targetBranches = await this.parseBranches(this.target);
     }
 
     const targetBranch = await this.target.getBranch();
@@ -374,6 +390,26 @@ Please follow the steps to resolve the conflicts:
     }
 
     return [hash, parent];
+  }
+
+  private async removeDevelopBranches(developBranches: string[]) {
+    const targetBranch = await this.target.getBranch();
+    if (developBranches.includes(targetBranch)) {
+      throw new Error('Cannot delete develop branch "' + targetBranch + '" checked out in target repository.');
+    }
+
+    // Remove branch
+    for (const branch of developBranches) {
+      await this.target.run(['branch', '-D', branch], {mute: true});
+    }
+
+    // TODO pull back after sync or ignore remote log and branch on sync
+    // Remove remote log
+    const url = await this.target.run(['config', '--get', 'remote.origin.url'], {mute: true});
+    if (url) {
+      await this.target.run(['remote', 'rm', 'origin']);
+      await this.target.run(['remote', 'add', 'origin', url]);
+    }
   }
 
   private async createSquashCommits(sourceBranches: any, targetBranches: any) {
@@ -1553,6 +1589,13 @@ Please follow the steps to resolve the conflicts:
       total,
       width: 50,
     });
+  }
+
+  private diff(arr1: string[], arr2: string[]) {
+    if (!arr1.length || !arr2.length) {
+      return arr1;
+    }
+    return arr1.filter(x => !arr2.includes(x));
   }
 
   private initContext() {
